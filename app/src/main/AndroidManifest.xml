@@ -33,12 +33,19 @@
             android:name=".MapsActivity"
             android:exported="true"
             android:label="@string/title_activity_maps">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+        </activity>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+        <activity android:name=".userRegister"
+            android:exported="true"
+            android:label="userRegister">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!--Currently set the sign up page as launcher activity -->
+
     </application>
 
 </manifest>

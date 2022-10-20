@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">SolCalBeach</string>
     <string name="title_activity_maps">MapsActivity</string>
+    <string name="register">Register</string>
+    <string name="your_name">your name</string>
+    <string name="your_email">your email</string>
+    <string name="your_pwd">type a strong password</string>
+    <string name="re_type_password">type your password again</string>
 </resources>
