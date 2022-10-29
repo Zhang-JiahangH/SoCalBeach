@@ -1,32 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/userPwdInput"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="20dp"
+    android:paddingTop="180sp"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:paddingHorizontal="30sp"
-    android:paddingTop="130sp">
+    tools:context=".userLogIn">
+
 
     <TextView
-        android:id="@+id/tv_logo"
+        android:id="@+id/logo_log_in"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sign up to SoCalBeach"
-        android:textAlignment="center"
+        android:text="Log In"
         android:textSize="30sp" />
 
     <EditText
-        android:id="@+id/et_name"
-        android:layout_width="320dp"
-        android:layout_height="55dp"
-        android:hint="@string/your_name"
-        android:inputType="textPersonName"
-        android:padding="15dp"
-        android:textSize="15sp" />
-
-    <EditText
-        android:id="@+id/et_email"
+        android:id="@+id/login_email"
         android:layout_width="320dp"
         android:layout_height="55dp"
         android:hint="@string/your_email"
@@ -35,7 +29,7 @@
         android:textSize="15sp" />
 
     <EditText
-        android:id="@+id/et_password"
+        android:id="@+id/login_password"
         android:layout_width="320dp"
         android:layout_height="55dp"
         android:hint="@string/your_pwd"
@@ -43,22 +37,12 @@
         android:padding="15dp"
         android:textSize="15sp" />
 
-    <EditText
-        android:id="@+id/et_repassword"
-        android:layout_width="320dp"
-        android:layout_height="55dp"
-        android:hint="@string/re_type_password"
-        android:inputType="textPassword"
-        android:padding="15dp"
-        android:textSize="15sp" />
-
     <Button
-        android:id="@+id/btn_register"
+        android:id="@+id/btn_logIn"
         android:layout_width="130dp"
         android:layout_height="39dp"
-        android:text="@string/register"
+        android:text="@string/login"
         tools:layout_editor_absoluteX="140dp"
         tools:layout_editor_absoluteY="458dp" />
-
 
 </LinearLayout>
