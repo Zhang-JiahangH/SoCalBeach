@@ -15,6 +15,12 @@
         android:textAlignment="center"
         android:textSize="30sp" />
 
+    <TextView
+        android:id="@+id/tv_signup_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#B60000" />
+
     <EditText
         android:id="@+id/et_name"
         android:layout_width="320dp"

@@ -1,4 +1,4 @@
-package com.example.solcalbeach;
+package com.example.solcalbeach.util;
 
 import java.io.Serializable;
 
@@ -8,7 +8,9 @@ public class userRegisterHelper implements Serializable {
     public userRegisterHelper(){}
 
     public userRegisterHelper(String n, String e, String p){
-        this.name=n; this.email=e; this.password = p;
+        this.email=e;
+        this.name=n;
+        this.password = p;
     }
 
     public String getName() {return name;}
