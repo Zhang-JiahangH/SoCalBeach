@@ -8,4 +8,6 @@
     <string name="re_type_password">type your password again</string>
     <string name="register_remind">Don\'t have an account? Register now</string>
     <string name="login">Log In</string>
+    <string name="navigation_drawer_open">Open Nav Drawer</string>
+    <string name="navigation_drawer_close">Close Nav Drawer</string>
 </resources>

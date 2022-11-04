@@ -72,7 +72,7 @@ public class userSignIn extends AppCompatActivity {
     }
 
     private void to_main(){
-        Intent intent = new Intent(this, MapsActivity.class);
+        Intent intent = new Intent(this, homeActivity.class);
         startActivity(intent);
     }
 

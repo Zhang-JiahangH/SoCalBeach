@@ -57,7 +57,7 @@ public class userSignUp extends AppCompatActivity {
 
     public void finishRegister(){
         // When register is success, send intent to main page.
-        Intent intent = new Intent(this, MapsActivity.class);
+        Intent intent = new Intent(this, homeActivity.class);
         startActivity(intent);
     }
 
@@ -81,7 +81,6 @@ public class userSignUp extends AppCompatActivity {
                 if(!task.getResult().getSignInMethods().isEmpty()){
                     failedRegister("Email has been used, try sign in?");
                 }else{
-
                     // Get reference of user maps in database
                     DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference().child("users");
                     // checking if the email is already stored in the database
