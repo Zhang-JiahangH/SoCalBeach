@@ -25,6 +25,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
+import com.example.solcalbeach.util.Beach;
 import com.example.solcalbeach.util.FetchData;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -83,8 +84,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         // Initialize the Tool Bar
         setSupportActionBar(toolbar);
 
-        // Initialize navigation drawer menu
 
+        // Initialize navigation drawer menu
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.black));
@@ -194,20 +195,27 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         }
         Log.d("search starts","starting searching nearby beaches...");
 
-        // initialize the URL used for searching
-//        StringBuilder stringBuilder = new StringBuilder
-//                ("https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
-//        stringBuilder.append("location="+curLocation.getLatitude()+","+curLocation.getLongitude());
-//        stringBuilder.append("&keyword=beach");
-//        // TODO: hide key after test
-//        stringBuilder.append("&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg");
+
 
         // TODO: this is just a testing URL, change for functionality
-        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+
-                curLocation.getLatitude()+","+curLocation.getLongitude()+"&radius=15000&keyword=beach&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
-        Object dataFetch[] = new Object[2];
+//        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+
+//                curLocation.getLatitude()+","+curLocation.getLongitude()+
+//                "&radius=15000" +
+//                "&keyword=beach" +
+//                "&types=natural_feature" +
+//                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+        String url = "https://maps.googleapis.com/maps/api/place/textsearch/json?"+
+                "location="+curLocation.getLatitude()+","+curLocation.getLongitude() +
+                "&query=beach"+
+                "&types=natural_feature" +
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+        List<Beach> searchResult = new ArrayList<>();
+        Object dataFetch[] = new Object[3];
         dataFetch[0] = mMap;
         dataFetch[1] = url;
+        dataFetch[2] = searchResult;
         FetchData fetchData = new FetchData();
         fetchData.execute(dataFetch);
 
