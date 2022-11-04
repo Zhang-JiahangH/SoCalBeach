@@ -10,4 +10,5 @@
     <string name="login">Log In</string>
     <string name="navigation_drawer_open">Open Nav Drawer</string>
     <string name="navigation_drawer_close">Close Nav Drawer</string>
+
 </resources>
