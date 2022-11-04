@@ -44,10 +44,10 @@
             android:name=".userSignIn"
             android:exported="true"
             android:label="SignInPage">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN"/>-->
+<!--                <category android:name="android.intent.category.LAUNCHER"/>-->
+<!--            </intent-filter>-->
         </activity>
         <activity android:name=".userSignUp"
             android:exported="true"
@@ -57,6 +57,10 @@
         <activity android:name=".homeActivity"
             android:exported="true"
             android:label="HomePage">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
         </activity>
 
 
