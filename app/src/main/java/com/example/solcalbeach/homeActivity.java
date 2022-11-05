@@ -6,16 +6,28 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
 import android.location.LocationRequest;
+import android.media.Rating;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ImageButton;
+import android.widget.PopupWindow;
+import android.widget.RatingBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -27,12 +39,14 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
@@ -70,6 +84,15 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     // Search beaches needed
     List<Beach> nearbyBeaches;
+
+    // popup window needed
+    TextView tvPopupName, tvPopupRating;
+    ImageButton btnPopupBack;
+    Button btnDirection, btnRestaurant, btnSubmit;
+    CheckBox cbAnonymous;
+    RatingBar ratingBar;
+
+
 
 
     @Override
@@ -240,8 +263,19 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(@NonNull Marker marker) {
+                for(Beach beach : nearbyBeaches){
+                    if(beach.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        createPopupWindow(beach, marker);
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(beach.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                    }
+                }
                 // Makes all markers clickable
-                Log.d("Marker clicked: ", marker.getTitle());
                 return false;
             }
         });
@@ -266,9 +300,52 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
+
+            JSONObject getRating = jsonArray.getJSONObject(i);
+            double rating = Double.parseDouble(getRating.getString("rating"));
+
+            JSONObject getPlaceId = jsonArray.getJSONObject(i);
+            String placeId = getPlaceId.getString("place_id");
+
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            Beach beach = new Beach(name,latLng);
+            Beach beach = new Beach(name,latLng,rating,placeId);
             nearbyBeaches.add(beach);
         }
+    }
+
+    @SuppressLint({"SetTextI18n", "MissingInflatedId"})
+    public void createPopupWindow(Beach beach, Marker marker){
+        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View beachPopupView = layoutInflater.inflate(R.layout.pop_up_window,null);
+        PopupWindow popupWindow = new PopupWindow(beachPopupView,1300,2000,true);
+
+        tvPopupName = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_name);
+        tvPopupRating = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_rating);
+        btnPopupBack = (ImageButton) beachPopupView.findViewById(R.id.imgBtn_popup_back);
+        btnDirection = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_direction);
+        btnRestaurant = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_restaurant);
+        cbAnonymous = (CheckBox) beachPopupView.findViewById(R.id.cb_beach_popup_anonymous);
+        ratingBar = (RatingBar) beachPopupView.findViewById(R.id.rating);
+        btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
+
+        tvPopupName.setText(beach.getName());
+        tvPopupRating.setText("rating: "+ String.valueOf(beach.getRating())+" out of 5");
+
+        popupWindow.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
+
+        btnPopupBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                popupWindow.dismiss();
+            }
+        });
+
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Float rating = ratingBar.getRating();
+                // TODO: change the layout, record the rating into current beach and current user profile.
+            }
+        });
     }
 }
