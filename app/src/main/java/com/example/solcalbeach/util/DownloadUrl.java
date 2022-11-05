@@ -37,8 +37,10 @@ public class DownloadUrl {
         }catch (Exception e){
             Log.e("Exception: ", e.toString());
         }finally {
-            inputStream.close();
-            httpURLConnection.disconnect();
+            if(inputStream!=null)
+                inputStream.close();
+            if(httpURLConnection!=null)
+                httpURLConnection.disconnect();
         }
         return urlData;
     }

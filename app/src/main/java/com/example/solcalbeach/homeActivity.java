@@ -4,13 +4,10 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationRequest;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -23,10 +20,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.Fragment;
 
 import com.example.solcalbeach.util.Beach;
-import com.example.solcalbeach.util.FetchData;
+import com.example.solcalbeach.util.DownloadUrl;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
@@ -34,26 +30,27 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 
-import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.Places;
-import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.material.navigation.NavigationView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
+        OnMapReadyCallback{
 
     DrawerLayout drawerLayout;
     NavigationView navigationView;
@@ -69,7 +66,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     Location curLocation;
     FusedLocationProviderClient fusedLocationProviderClient;
     LocationCallback locationCallback;
-    private static final int REQUEST_CODE=101;
+    private static final int REQUEST_CODE = 101;
+
+    // Search beaches needed
+    List<Beach> nearbyBeaches;
 
 
     @Override
@@ -95,15 +95,15 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         // Initialize clickable items in the menu
         navigationView.setNavigationItemSelectedListener(this);
 
-
-
         // Initialize map view
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         getCurrentLocation();
-        if(isPermissionGranted){
+        if (isPermissionGranted) {
             SupportMapFragment supportMapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.home_map_view);
             supportMapFragment.getMapAsync(this);
         }
+
+
 
         navigationView.bringToFront();
         toolbar.bringToFront();
@@ -121,26 +121,25 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         mMap = googleMap;
 
         //customize the styling of the base map
-        try{
+        try {
             boolean success = googleMap.setMapStyle(
                     MapStyleOptions.loadRawResourceStyle(
                             this, R.raw.style_json));
-            if(!success) Log.e("Map Styling Error", "Unable to load map style");
-        }catch(Resources.NotFoundException e){
-            Log.e("Map styling error",e.toString());
+            if (!success) Log.e("Map Styling Error", "Unable to load map style");
+        } catch (Resources.NotFoundException e) {
+            Log.e("Map styling error", e.toString());
         }
-
 
     }
 
-    private void getCurrentLocation(){
+    private void getCurrentLocation() {
         // Check if the required permission has been granted
         // If not, request for permission
-        if(ActivityCompat.checkSelfPermission(
+        if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED){
+                != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE);
             return;
@@ -153,11 +152,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             @SuppressLint("MissingPermission")
             @Override
             public void onSuccess(Location location) {
-                if(task.isSuccessful()){
+                if (task.isSuccessful()) {
                     curLocation = task.getResult();
-                    if(curLocation != null){
+                    if (curLocation != null) {
                         // Congratulation we don't need to do anything else.
-                    }else{
+                    } else {
                         // request for the current location if no prior location has been called.
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             LocationRequest.Builder builder = new LocationRequest.Builder(10000);
@@ -166,7 +165,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                 @Override
                                 public void onLocationResult(@NonNull LocationResult locationResult) {
                                     super.onLocationResult(locationResult);
-                                    if(locationResult == null){return;}
+                                    if (locationResult == null) {
+                                        return;
+                                    }
                                     curLocation = locationResult.getLastLocation();
                                 }
                             };
@@ -178,46 +179,96 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
                     // Enable the blue dot for user location
                     mMap.setMyLocationEnabled(true);
+
+                    // Find nearby beaches and initialize them on the map
+
                     findNearbyBeaches();
-                }else{
-                    Toast.makeText(homeActivity.this, "unable to get location",Toast.LENGTH_SHORT).show();
+
+                } else {
+                    Toast.makeText(homeActivity.this, "unable to get location", Toast.LENGTH_SHORT).show();
                 }
             }
         });
     }
 
     private void findNearbyBeaches(){
-        if(curLocation == null){
-            Log.e("Error","current location is null in find nearby beaches.");
+        if (curLocation == null) {
+            Log.e("Error", "current location is null in find nearby beaches.");
         }
-        if(!isPermissionGranted){
-            Log.e("Error","permission not granted in find nearby beaches,");
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
         }
-        Log.d("search starts","starting searching nearby beaches...");
+        Log.d("search starts", "starting searching nearby beaches...");
 
 
-
-        // TODO: this is just a testing URL, change for functionality
-//        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+
-//                curLocation.getLatitude()+","+curLocation.getLongitude()+
-//                "&radius=15000" +
-//                "&keyword=beach" +
-//                "&types=natural_feature" +
-//                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
-
-        String url = "https://maps.googleapis.com/maps/api/place/textsearch/json?"+
-                "location="+curLocation.getLatitude()+","+curLocation.getLongitude() +
-                "&query=beach"+
+        String url = "https://maps.googleapis.com/maps/api/place/textsearch/json?" +
+                "location=" + curLocation.getLatitude() + "," + curLocation.getLongitude() +
+                "&query=beach" +
                 "&types=natural_feature" +
                 "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
 
-        List<Beach> searchResult = new ArrayList<>();
-        Object dataFetch[] = new Object[3];
-        dataFetch[0] = mMap;
-        dataFetch[1] = url;
-        dataFetch[2] = searchResult;
-        FetchData fetchData = new FetchData();
-        fetchData.execute(dataFetch);
 
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializeBeachMarkers(url);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+
+        while(nearbyBeaches==null){
+            double i = Math.log(309209387);
+        }
+        while(nearbyBeaches.size()!=6){
+            double i = Math.log(309209387);
+        }
+        // Put the beaches result into
+        for(Beach beach : nearbyBeaches){
+            mMap.addMarker(new MarkerOptions()
+                    .position(beach.getLocation())
+                    .title(beach.getName())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+        }
+
+
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                // Makes all markers clickable
+                Log.d("Marker clicked: ", marker.getTitle());
+                return false;
+            }
+        });
+
+    }
+
+    public void initializeBeachMarkers(String url) throws IOException, JSONException {
+        nearbyBeaches = new ArrayList<>();
+        DownloadUrl downloadUrl = new DownloadUrl();
+        String nearby_places_data;
+        nearby_places_data = downloadUrl.retrieve_url(url);
+
+        JSONObject jsonObject = new JSONObject(nearby_places_data);
+        JSONArray jsonArray = jsonObject.getJSONArray("results");
+        for(int i=0; i< 6 ; i++){
+            // extract useful information from the json
+            JSONObject jsonObject1 = jsonArray.getJSONObject(i);
+
+            JSONObject getLocation = jsonObject1.getJSONObject("geometry").getJSONObject("location");
+            String lat = getLocation.getString("lat");
+            String lng = getLocation.getString("lng");
+
+            JSONObject getName = jsonArray.getJSONObject(i);
+            String name = getName.getString("name");
+            LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
+            Beach beach = new Beach(name,latLng);
+            nearbyBeaches.add(beach);
+        }
     }
 }
