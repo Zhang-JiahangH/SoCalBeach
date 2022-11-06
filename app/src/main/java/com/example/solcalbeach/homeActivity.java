@@ -2,16 +2,15 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationRequest;
-import android.media.Rating;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -37,6 +36,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.solcalbeach.util.Beach;
 import com.example.solcalbeach.util.DownloadUrl;
+import com.example.solcalbeach.util.Review;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
@@ -55,9 +55,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -65,9 +72,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         OnMapReadyCallback{
@@ -99,14 +105,20 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     double restaurantRange = 304.8;     // default for 1000 feet.
 
     // popup window needed
+    PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
     Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
 
+    // review needed
+    Beach beach;
+    FirebaseUser curUser;
+    private DatabaseReference mDatabase;
 
-
+    // Dialog
+    AlertDialog dialog;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -125,6 +137,13 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnRange1000.setVisibility(View.INVISIBLE);
         btnRange2000.setVisibility(View.INVISIBLE);
         btnRange3000.setVisibility(View.INVISIBLE);
+
+        // Init database basic
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+
+        // Initial user Info
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        curUser = mAuth.getCurrentUser();
 
         // Initialize the Tool Bar
         setSupportActionBar(toolbar);
@@ -159,7 +178,16 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             supportMapFragment.getMapAsync(this);
         }
 
-
+        // Initialize dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(homeActivity.this);
+        // Add the buttons
+        builder.setMessage("Message Created/Updated")
+                .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        popupWindow.dismiss();
+                    }
+                });
+        dialog = builder.create();
 
         navigationView.bringToFront();
         toolbar.bringToFront();
@@ -335,14 +363,17 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
 
+            // Calculate rating of beaches
             JSONObject getRating = jsonArray.getJSONObject(i);
             double rating = Double.parseDouble(getRating.getString("rating"));
+
+            int user_ratings_total = Integer.parseInt(getRating.getString("user_ratings_total"));
 
             JSONObject getPlaceId = jsonArray.getJSONObject(i);
             String placeId = getPlaceId.getString("place_id");
 
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            Beach beach = new Beach(name,latLng,rating,placeId);
+            beach = new Beach(name,latLng,rating,placeId,user_ratings_total);
             nearbyBeaches.add(beach);
         }
     }
@@ -351,7 +382,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     public void createPopupWindow(Beach beach, Marker marker){
         LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View beachPopupView = layoutInflater.inflate(R.layout.pop_up_window,null);
-        PopupWindow popupWindow = new PopupWindow(beachPopupView,900,1500,true);
+        popupWindow = new PopupWindow(beachPopupView,900,1500,true);
 
         tvPopupName = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_name);
         tvPopupRating = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_rating);
@@ -363,6 +394,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
 
         tvPopupName.setText(beach.getName());
+        upDateRating();
         tvPopupRating.setText("rating: "+ String.valueOf(beach.getRating())+" out of 5");
 
         popupWindow.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
@@ -480,8 +512,41 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 Float rating = ratingBar.getRating();
                 // TODO: change the layout, record the rating into current beach and current user profile.
+                Review newReview = new Review(rating, curUser.getUid(), beach.getPlaceId());
+                UUID reviewId = UUID.randomUUID();
+                writeReview(reviewId, newReview);
+                upDateRating();
+                dialog.show();
             }
         });
+    }
+
+    public void writeReview(UUID uuid, Review review) {
+        mDatabase.child("reviews").child(uuid.toString()).setValue(review);
+    }
+
+    public void upDateRating() {
+        int[] totalPeople = {beach.getUser_ratings_total()};
+        double[] totalRating = {beach.getRating() * totalPeople[0]};
+        Query res = mDatabase.child("reviews").orderByChild("placeId").equalTo(beach.getPlaceId());
+        res.get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    ArrayList<Review> reviews = (ArrayList<Review>)task.getResult().getValue();
+                    for(int i=0; i<reviews.size(); ++i) {
+                        totalRating[0] += reviews.get(i).getRating();
+                        totalPeople[0] += 1;
+                    }
+                }
+            }
+        });
+        beach.setUser_ratings_total(totalPeople[0]);
+        beach.setRating(totalRating[0] / totalPeople[0]);
     }
 
 
