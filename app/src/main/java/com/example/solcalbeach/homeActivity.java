@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationRequest;
 import android.media.Rating;
@@ -47,6 +48,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
@@ -61,7 +64,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         OnMapReadyCallback{
@@ -69,7 +74,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     DrawerLayout drawerLayout;
     NavigationView navigationView;
     Toolbar toolbar;
-
+    // using a hashmap to store all on-map markers for operations.
+    List<Marker> allBeachMarkers= new ArrayList<>();
+    List<Marker> allRestaurantMarkers = new ArrayList<>();
+    List<Marker> allParkingMarkers = new ArrayList<>();
 
     boolean isPermissionGranted;
     private GoogleMap mMap;
@@ -84,17 +92,22 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     // Search beaches needed
     List<Beach> nearbyBeaches;
+    Circle circle;
+
+    // Search Restaurants needed
+    double restaurantRange = 304.8;     // default for 1000 feet.
 
     // popup window needed
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
 
 
 
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,10 +116,17 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
+        btnHomeBack = (Button) findViewById(R.id.Btn_home_back);
+        btnHomeBack.setVisibility(View.INVISIBLE);
+        btnRange1000 = (Button) findViewById(R.id.Btn_home_range_1000);
+        btnRange2000 = (Button) findViewById(R.id.Btn_home_range_2000);
+        btnRange3000 = (Button) findViewById(R.id.Btn_home_range_3000);
+        btnRange1000.setVisibility(View.INVISIBLE);
+        btnRange2000.setVisibility(View.INVISIBLE);
+        btnRange3000.setVisibility(View.INVISIBLE);
 
         // Initialize the Tool Bar
         setSupportActionBar(toolbar);
-
 
         // Initialize navigation drawer menu
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
@@ -251,15 +271,17 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         while(nearbyBeaches.size()!=6){
             double i = Math.log(309209387);
         }
-        // Put the beaches result into
+        // Put the found beaches as markers onto map and add them in hashmap.
         for(Beach beach : nearbyBeaches){
-            mMap.addMarker(new MarkerOptions()
+            Marker curMarker = mMap.addMarker(new MarkerOptions()
                     .position(beach.getLocation())
                     .title(beach.getName())
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+            allBeachMarkers.add(curMarker);
         }
 
 
+        // Makes all markers clickable
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(@NonNull Marker marker) {
@@ -275,7 +297,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                         mMap.animateCamera(cu);
                     }
                 }
-                // Makes all markers clickable
                 return false;
             }
         });
@@ -317,7 +338,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     public void createPopupWindow(Beach beach, Marker marker){
         LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View beachPopupView = layoutInflater.inflate(R.layout.pop_up_window,null);
-        PopupWindow popupWindow = new PopupWindow(beachPopupView,1300,2000,true);
+        PopupWindow popupWindow = new PopupWindow(beachPopupView,900,1500,true);
 
         tvPopupName = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_name);
         tvPopupRating = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_rating);
@@ -340,6 +361,100 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+
+        // Nearby Restaurant button onclick listener
+        btnRestaurant.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // When clicking the restaurant button:
+                // 0. close the popup window
+                popupWindow.dismiss();
+                // 1. zoom in to the beach
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                        beach.getLocation(), DEFAULT_ZOOM+1));
+                // 2. hide all other beaches markers
+                for(Marker markerBeach: allBeachMarkers){
+                    if(!markerBeach.getTitle().equals(beach.getName()))
+                        markerBeach.setVisible(false);
+                }
+                // 3. show buttons on map that enables user to select range (default 1000feet)
+                btnRange1000.setVisibility(View.VISIBLE);
+                btnRange1000.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        restaurantRange = 304.8;
+                        circle.setRadius(restaurantRange);
+                        try {
+                            findRestaurant(beach,restaurantRange);
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                btnRange2000.setVisibility(View.VISIBLE);
+                btnRange2000.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        restaurantRange = 609.6;
+                        circle.setRadius(restaurantRange);
+                        try {
+                            findRestaurant(beach,restaurantRange);
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                btnRange3000.setVisibility(View.VISIBLE);
+                btnRange3000.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        restaurantRange = 914.4;
+                        circle.setRadius(restaurantRange);
+                        try {
+                            findRestaurant(beach,restaurantRange);
+                        } catch (IOException | JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                // 4. draw a default circle centered at the beach with range corresponding to selected range
+                circle = mMap.addCircle(new CircleOptions()
+                        .center(beach.getLocation())
+                        .radius(restaurantRange)
+                        .strokeColor(Color.RED).strokeWidth(2)
+                        .fillColor(Color.parseColor("#22C8BAA9")));
+
+                // 5. show a button on map that can exit restaurant mode.
+                btnHomeBack.setVisibility(View.VISIBLE);
+                btnHomeBack.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        for(Marker marker1: allRestaurantMarkers){
+                            marker1.remove();
+                        }
+                        for(Marker marker1: allBeachMarkers){
+                            marker1.setVisible(true);
+                        }
+                        circle.remove();
+                        btnHomeBack.setVisibility(View.INVISIBLE);
+                        btnHomeBack.setOnClickListener(null);
+                        btnRange1000.setVisibility(View.INVISIBLE);
+                        btnRange1000.setOnClickListener(null);
+                        btnRange2000.setVisibility(View.INVISIBLE);
+                        btnRange2000.setOnClickListener(null);
+                        btnRange3000.setVisibility(View.INVISIBLE);
+                        btnRange3000.setOnClickListener(null);
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                beach.getLocation(), 10));
+                    }
+                });
+                // 6. call api to find nearby restaurants
+                // 7. add restaurants markers to map, set onclicklistener for popup window
+
+            }
+        });
+
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -347,5 +462,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 // TODO: change the layout, record the rating into current beach and current user profile.
             }
         });
+    }
+
+
+    public void findRestaurant(Beach beach, double range) throws IOException, JSONException {
+        String url = "";
+        // TODO: find nearby restaurants and inflate markers on map (remember adding them in list).
     }
 }
