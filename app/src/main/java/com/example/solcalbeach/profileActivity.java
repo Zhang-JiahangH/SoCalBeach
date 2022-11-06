@@ -2,6 +2,7 @@ package com.example.solcalbeach;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,8 +13,27 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicMarkableReference;
+
+import com.example.solcalbeach.util.userRegisterHelper;
+import com.google.firebase.database.ValueEventListener;
 
 public class profileActivity extends Activity {
 
@@ -21,7 +41,10 @@ public class profileActivity extends Activity {
     private RelativeLayout rl_head;
     private ImageView iv_head;
     private TextView tv_name,tv_other;
-
+    private FirebaseAuth mAuth;
+    private FirebaseUser curUser;
+    private String userName;
+    private String userEmail;
 
     //*******************************
     private int mLastY = 0;  //最后的点
@@ -46,11 +69,16 @@ public class profileActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mAuth = FirebaseAuth.getInstance();
+        curUser = mAuth.getCurrentUser();
+        userName = curUser.getDisplayName();
+        userEmail = curUser.getEmail();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.profile_activity);
         initView();
         initDistance();
+        initReviews();
     }
 
     private void initView() {
@@ -59,6 +87,35 @@ public class profileActivity extends Activity {
         iv_head= (ImageView) findViewById(R.id.iv_head);
         tv_name= (TextView) findViewById(R.id.tv_name);
         tv_other= (TextView) findViewById(R.id.tv_other);
+
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference usersRef = database.getReference("users");
+        usersRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
+                System.out.println(profile.getName());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+        usersRef.child(curUser.getUid()).child("name").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    tv_name.setText(String.valueOf(task.getResult().getValue()));
+                }
+            }
+        });
+
+        tv_other.setText(userEmail);
     }
 
     private void initDistance() {
@@ -78,6 +135,11 @@ public class profileActivity extends Activity {
         mTextTop = textParams.topMargin;
         mTextNeedMoveDistanceX = getWindowManager().getDefaultDisplay().getWidth() / 2 - mTextLeft + 10;
         mTextNeedMoveDistanceY = mTextTop - (mNeedDistance) / 2;
+    }
+
+    // TODO:Implement Initialization of Views
+    private void initReviews() {
+
     }
 
 
@@ -174,5 +236,4 @@ public class profileActivity extends Activity {
         }
 
     }
-
 }

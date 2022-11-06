@@ -2,6 +2,7 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
@@ -116,7 +117,19 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         toggle.syncState();
 
         // Initialize clickable items in the menu
-        navigationView.setNavigationItemSelectedListener(this);
+        navigationView.setNavigationItemSelectedListener(
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        if(item.getItemId() == R.id.nav_profile) {
+                            Intent intent = new Intent();
+                            intent.setClass(homeActivity.this,profileActivity.class);
+                            startActivity(intent);
+                        }
+                        return false;
+                    }
+                }
+        );
 
         // Initialize map view
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
