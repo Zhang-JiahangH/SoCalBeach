@@ -374,6 +374,13 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        btnDirection.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                popupWindow.dismiss();
+            }
+        });
+
 
         // Nearby Restaurant button onclick listener
         btnRestaurant.setOnClickListener(new View.OnClickListener() {
