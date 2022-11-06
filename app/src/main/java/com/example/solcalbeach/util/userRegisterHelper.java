@@ -3,7 +3,7 @@ package com.example.solcalbeach.util;
 import java.io.Serializable;
 
 public class userRegisterHelper implements Serializable {
-    public String name,email,password;
+    public String name,email,displayName,password;
 
     public userRegisterHelper(){}
 
