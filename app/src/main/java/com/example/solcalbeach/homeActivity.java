@@ -72,7 +72,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
@@ -113,7 +115,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     RatingBar ratingBar;
 
     // review needed
-    Beach beach;
+    Beach curBeach;
     FirebaseUser curUser;
     private DatabaseReference mDatabase;
 
@@ -329,6 +331,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 for(Beach beach : nearbyBeaches){
                     if(beach.getName().equals(marker.getTitle())) {
                         // Smoothly move the camera to the marker and display the popup window
+                        curBeach = beach;
                         createPopupWindow(beach, marker);
                         CameraPosition cameraPosition = new CameraPosition.Builder()
                                 .target(beach.getLocation())
@@ -373,8 +376,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             String placeId = getPlaceId.getString("place_id");
 
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            beach = new Beach(name,latLng,rating,placeId,user_ratings_total);
-            nearbyBeaches.add(beach);
+            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
+            nearbyBeaches.add(curBeach);
         }
     }
 
@@ -511,8 +514,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onClick(View view) {
                 Float rating = ratingBar.getRating();
+                Review newReview;
+                if(cbAnonymous.isChecked()) {
+                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName());
+                }
+                else {
+                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName());
+                }
                 // TODO: change the layout, record the rating into current beach and current user profile.
-                Review newReview = new Review(rating, curUser.getUid(), beach.getPlaceId());
                 UUID reviewId = UUID.randomUUID();
                 writeReview(reviewId, newReview);
                 upDateRating();
@@ -526,27 +535,27 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void upDateRating() {
-        int[] totalPeople = {beach.getUser_ratings_total()};
-        double[] totalRating = {beach.getRating() * totalPeople[0]};
-        Query res = mDatabase.child("reviews").orderByChild("placeId").equalTo(beach.getPlaceId());
-        res.get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DataSnapshot> task) {
-                if (!task.isSuccessful()) {
-                    Log.e("firebase", "Error getting data", task.getException());
-                }
-                else {
-                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
-                    ArrayList<Review> reviews = (ArrayList<Review>)task.getResult().getValue();
-                    for(int i=0; i<reviews.size(); ++i) {
-                        totalRating[0] += reviews.get(i).getRating();
-                        totalPeople[0] += 1;
+        Query res = mDatabase.child("reviews").orderByChild("placeId").equalTo(curBeach.getPlaceId());
+        res.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.e("firebase", "Error getting data", task.getException());
+            }
+            else {
+                Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                Map<String, HashMap<String,String>> reviews = (HashMap<String, HashMap<String,String>>)task.getResult().getValue();
+                if(reviews != null) {
+                    for(HashMap<String,String> review:reviews.values()) {
+                        Log.e("placeId", review.get("placeId"));
+                        changeRatingInfo(Double.parseDouble(review.get("rating")));
                     }
                 }
             }
         });
-        beach.setUser_ratings_total(totalPeople[0]);
-        beach.setRating(totalRating[0] / totalPeople[0]);
+    }
+
+    public void changeRatingInfo(double rates) {
+        curBeach.setRating((curBeach.getRating() * curBeach.getUser_ratings_total() + rates) / (curBeach.getUser_ratings_total() + 1));
+        curBeach.setUser_ratings_total(curBeach.getUser_ratings_total() + 1);
     }
 
 
