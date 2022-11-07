@@ -37,6 +37,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.solcalbeach.util.Beach;
 import com.example.solcalbeach.util.DownloadUrl;
 import com.example.solcalbeach.util.Review;
+import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
@@ -62,9 +63,11 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -147,6 +150,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         curUser = mAuth.getCurrentUser();
 
+        // Change Header Info
+        changeHeader();
+
         // Initialize the Tool Bar
         setSupportActionBar(toolbar);
 
@@ -194,6 +200,39 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         navigationView.bringToFront();
         toolbar.bringToFront();
 
+    }
+    public void changeHeader() {
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference usersRef = database.getReference("users");
+        usersRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
+                System.out.println(profile.getName());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+        usersRef.child(curUser.getUid()).child("name").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    updateHeaderText(String.valueOf(task.getResult().getValue()));
+                }
+            }
+        });
+    }
+
+    void updateHeaderText(String newUser) {
+        TextView navHead = (TextView)findViewById(R.id.bar_header_welcome);
+        navHead.setText(newUser);
     }
 
     @Override
