@@ -1,8 +1,11 @@
 package com.example.solcalbeach;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,10 +18,15 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.Toolbar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.solcalbeach.util.Review;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -36,7 +44,7 @@ import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-public class profileActivity extends Activity {
+public class profileActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
 
     private ListView listView;
     private RelativeLayout rl_head;
@@ -70,20 +78,67 @@ public class profileActivity extends Activity {
     private DatabaseReference mDatabase;
     Map<String, HashMap<String, String>> results;
 
+    DrawerLayout drawerLayout;
+    NavigationView navigationView;
+    Toolbar toolbar;
+
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.profile_activity);
+
+        drawerLayout = findViewById(R.id.prof_drawer_layout);
+        navigationView = findViewById(R.id.prof_nav_view);
+        toolbar = findViewById(R.id.prof_toolbar);
+
         mAuth = FirebaseAuth.getInstance();
         curUser = mAuth.getCurrentUser();
         userName = curUser.getDisplayName();
         userEmail = curUser.getEmail();
         mDatabase = FirebaseDatabase.getInstance().getReference();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(R.layout.profile_activity);
+//        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         initView();
         initDistance();
         initReviews();
+
+        setSupportActionBar(toolbar);
+
+        // Initialize navigation drawer menu
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
+                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.black));
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        // Initialize clickable items in the menu
+        navigationView.setNavigationItemSelectedListener(
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        if(item.getItemId() == R.id.nav_home) {
+                            Log.e("destination: ", "homepage");
+                            Intent intent = new Intent();
+                            intent.setClass(profileActivity.this,homeActivity.class);
+                            startActivity(intent);
+                        }
+                        else if(item.getItemId() == R.id.nav_profile) {
+                            Intent intent = new Intent();
+                            intent.setClass(profileActivity.this,profileActivity.class);
+                            startActivity(intent);
+                        }
+                        else {
+                            Log.e("Error: ", "id not found");
+                        }
+                        return false;
+                    }
+                }
+        );
+
+        navigationView.bringToFront();
+        toolbar.bringToFront();
     }
 
     private void initView() {
@@ -267,4 +322,7 @@ public class profileActivity extends Activity {
         }
 
     }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) { return true; }
 }
