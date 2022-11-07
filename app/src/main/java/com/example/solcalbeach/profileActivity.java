@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -199,6 +200,7 @@ public class profileActivity extends AppCompatActivity{
             toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId")));
         }
         ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
+        adapter.notifyDataSetChanged();
         listView.setAdapter(adapter);
     }
 

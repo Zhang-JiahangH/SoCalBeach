@@ -632,14 +632,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 Float rating = ratingBar.getRating();
                 Review newReview;
+                UUID reviewId = UUID.randomUUID();
                 if(cbAnonymous.isChecked()) {
-                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName());
+                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName(), reviewId.toString());
                 }
                 else {
-                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName());
+                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString());
                 }
                 // TODO: change the layout, record the rating into current beach and current user profile.
-                UUID reviewId = UUID.randomUUID();
                 writeReview(reviewId, newReview);
                 upDateRating();
                 dialog.show();
