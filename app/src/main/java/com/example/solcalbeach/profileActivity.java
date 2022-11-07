@@ -8,31 +8,32 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
+import com.example.solcalbeach.util.Review;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.example.solcalbeach.util.userRegisterHelper;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 public class profileActivity extends Activity {
@@ -66,6 +67,9 @@ public class profileActivity extends Activity {
     private int mTextNeedMoveDistanceX;  // 文字需要移动的X距离
     private int mTextNeedMoveDistanceY;  //文字需要移动的Y距离
 
+    private DatabaseReference mDatabase;
+    Map<String, HashMap<String, String>> results;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,6 +77,7 @@ public class profileActivity extends Activity {
         curUser = mAuth.getCurrentUser();
         userName = curUser.getDisplayName();
         userEmail = curUser.getEmail();
+        mDatabase = FirebaseDatabase.getInstance().getReference();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.profile_activity);
@@ -139,7 +144,33 @@ public class profileActivity extends Activity {
 
     // TODO:Implement Initialization of Views
     private void initReviews() {
+        // retrieve data
+        Log.e("init Reviews", curUser.getUid());
+        Query res = mDatabase.child("reviews").orderByChild("userId").equalTo(curUser.getUid());
+        Map<String, HashMap<String, String>>[] reviews = new Map[]{new HashMap<>()};
+        res.get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()  {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+            if (!task.isSuccessful()) {
+                Log.e("firebase", "Error getting data", task.getException());
+            }
+            else {
+                Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
+                Log.e("result: ", task.getResult().getValue().toString());
+            }
+        }});
+        Log.e("init Reviews", "end");
+    }
 
+    private void updateList(Map<String, HashMap<String, String>> reviews) {
+        ArrayList<Review> toBeHandle = new ArrayList<>();
+        for(HashMap<String,String> review:reviews.values()) {
+            Log.e("item: ", review.get("placeId"));
+            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName")));
+        }
+        ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
+        listView.setAdapter(adapter);
     }
 
 
