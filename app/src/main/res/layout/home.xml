@@ -15,7 +15,9 @@
         android:id="@+id/nav_view"
         app:headerLayout="@layout/header"
         app:menu="@menu/main_menu"
-        android:layout_gravity="start"/>
+        android:layout_gravity="start">
+
+    </com.google.android.material.navigation.NavigationView>
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -30,6 +32,17 @@
             android:background="@drawable/layout_bg"
             android:text="BACK"
             app:backgroundTint="#3F4247" />
+
+        <Button
+            android:id="@+id/ETA"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="150dp"
+            android:background="@drawable/layout_bg"
+            android:text="eta"
+            app:backgroundTint="#3F4247" />
+
 
         <Button
             android:id="@+id/Btn_home_range_1000"

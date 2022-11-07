@@ -2,17 +2,15 @@ package com.example.solcalbeach.util;
 
 import com.google.android.gms.maps.model.LatLng;
 
-public class Beach{
+public class Parking {
     private LatLng location;
     private String name;
-    private double rating;
     private String placeId;
-    // TODO: implement rating related stuff(list+constructor...)
+    // TODO: implement picture/menu/openhour
 
-    public Beach(String name, LatLng location, double rating, String placeId){
+    public Parking(String name, LatLng location, String placeId){
         this.name = name;
         this.location = location;
-        this.rating=rating;
         this.placeId = placeId;
     }
 
@@ -26,14 +24,6 @@ public class Beach{
 
     public String getName() {
         return name;
-    }
-
-    public double getRating() {
-        return rating;
-    }
-
-    public void setRating(double rating) {
-        this.rating = rating;
     }
 
     public LatLng getLocation() {

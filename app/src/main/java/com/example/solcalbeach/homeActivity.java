@@ -8,10 +8,8 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationRequest;
-import android.media.Rating;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -29,13 +27,14 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.solcalbeach.util.Beach;
+import com.example.solcalbeach.util.Parking;
+import com.example.solcalbeach.util.Restaurant;
 import com.example.solcalbeach.util.DownloadUrl;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -44,6 +43,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+
 
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -55,9 +55,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
+import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -65,9 +68,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         OnMapReadyCallback{
@@ -95,13 +96,26 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     List<Beach> nearbyBeaches;
     Circle circle;
 
+
     // Search Restaurants needed
     double restaurantRange = 304.8;     // default for 1000 feet.
+    List<Restaurant> nearbyRestaurant;
+
+    //Parking info
+    List<Parking> nearbyLots;
+
+    //route info
+    List<Double> Lat;
+    List<Double> Long;
+    String encoded, estimate;
+    PolylineOptions poly;
+    Polyline polyline;
+
 
     // popup window needed
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
 
@@ -119,6 +133,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         toolbar = findViewById(R.id.toolbar);
         btnHomeBack = (Button) findViewById(R.id.Btn_home_back);
         btnHomeBack.setVisibility(View.INVISIBLE);
+        ETA = (Button) findViewById(R.id.ETA);
+        ETA.setVisibility(View.INVISIBLE);
         btnRange1000 = (Button) findViewById(R.id.Btn_home_range_1000);
         btnRange2000 = (Button) findViewById(R.id.Btn_home_range_2000);
         btnRange3000 = (Button) findViewById(R.id.Btn_home_range_3000);
@@ -240,12 +256,16 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
                     findNearbyBeaches();
 
+
+
+
                 } else {
                     Toast.makeText(homeActivity.this, "unable to get location", Toast.LENGTH_SHORT).show();
                 }
             }
         });
     }
+
 
     private void findNearbyBeaches(){
         if (curLocation == null) {
@@ -294,6 +314,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         }
 
 
+
+
         // Makes all markers clickable
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -310,11 +332,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                         mMap.animateCamera(cu);
                     }
                 }
+                //todo: restaurant pop up window and parking clicks
                 return false;
             }
         });
 
     }
+
+
 
     public void initializeBeachMarkers(String url) throws IOException, JSONException {
         nearbyBeaches = new ArrayList<>();
@@ -349,6 +374,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     @SuppressLint({"SetTextI18n", "MissingInflatedId"})
     public void createPopupWindow(Beach beach, Marker marker){
+        Log.i("create pop up","got here");
         LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View beachPopupView = layoutInflater.inflate(R.layout.pop_up_window,null);
         PopupWindow popupWindow = new PopupWindow(beachPopupView,900,1500,true);
@@ -377,7 +403,37 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnDirection.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // 0. close the popup window
                 popupWindow.dismiss();
+                // 1. zoom in to the beach
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                        beach.getLocation(), DEFAULT_ZOOM-1));
+                // 2. hide all other beaches markers
+                for(Marker markerBeach: allBeachMarkers){
+                    if(!markerBeach.getTitle().equals(beach.getName()))
+                        markerBeach.setVisible(false);
+                }
+                findNearbyParking(beach);
+                btnHomeBack.setVisibility(View.VISIBLE);
+                btnHomeBack.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        for(Marker marker1: allParkingMarkers){
+                            marker1.remove();
+                        }
+                        for(Marker marker1: allBeachMarkers){
+                            marker1.setVisible(true);
+                        }
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                beach.getLocation(), 10));
+                        btnHomeBack.setVisibility(View.INVISIBLE);
+                        ETA.setVisibility(View.INVISIBLE);
+                        if(polyline != null){
+                            polyline.remove();}
+                        nearbyLots.removeAll(nearbyLots);
+                    }
+                });
+
             }
         });
 
@@ -467,9 +523,13 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                         btnRange3000.setOnClickListener(null);
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 beach.getLocation(), 10));
+                        nearbyRestaurant.removeAll(nearbyRestaurant);
+                        if(polyline != null){
+                        polyline.remove();}
                     }
                 });
                 // 6. call api to find nearby restaurants
+
                 // 7. add restaurants markers to map, set onclicklistener for popup window
 
             }
@@ -486,7 +546,373 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void findRestaurant(Beach beach, double range) throws IOException, JSONException {
-        String url = "";
-        // TODO: find nearby restaurants and inflate markers on map (remember adding them in list).
+         Log.i("triggered: ", "findRest");
+        if (curLocation == null) {
+                Log.e("Error", "current location is null in find nearby beaches.");
+            }
+            if (!isPermissionGranted) {
+                Log.e("Error", "permission not granted in find nearby beaches,");
+            }
+            Log.d("search starts", "starting searching nearby restaurants...");
+
+
+            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                    "location=" + beach.getLatitude() + "," + beach.getLongitude() +
+                    "&radius="+ range +
+                    "&types=restaurant" +
+                    "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        initializeRestaurantMarkers(url);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            thread.start();
+            while(nearbyRestaurant==null){
+                double i = Math.log(309209387);
+                Log.i("bye ", "bye");
+
+            }
+
+            // Put the found beaches as markers onto map and add them in hashmap.
+            for(Restaurant restaurant : nearbyRestaurant){
+                Marker curMarker = mMap.addMarker(new MarkerOptions()
+                        .position(restaurant.getLocation())
+                        .title(restaurant.getName())
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+                allRestaurantMarkers.add(curMarker);
+            }
+
+
+            // Makes all markers clickable
+            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(@NonNull Marker marker) {
+                    for(Restaurant restaurant : nearbyRestaurant){
+                        if(restaurant.getName().equals(marker.getTitle())) {
+                            // Smoothly move the camera to the marker and display the popup window
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(restaurant.getLocation())
+                                    .zoom(15)
+                                    .build();
+                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                            mMap.animateCamera(cu);
+                            try {
+                                displayWalk(restaurant, beach);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    for(Beach beach : nearbyBeaches){
+                        if(beach.getName().equals(marker.getTitle())) {
+                            // Smoothly move the camera to the marker and display the popup window
+                            createPopupWindow(beach, marker);
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(beach.getLocation())
+                                    .zoom(15)
+                                    .build();
+                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                            mMap.animateCamera(cu);
+                        }
+                    }
+                    return false;
+                }
+            });
+
+        }
+
+    public void initializeRestaurantMarkers(String url) throws IOException, JSONException {
+        nearbyRestaurant = new ArrayList<>();
+        DownloadUrl downloadUrl = new DownloadUrl();
+        String nearby_places_data;
+        nearby_places_data = downloadUrl.retrieve_url(url);
+        Log.i("nearby place data", nearby_places_data);
+
+
+        if (nearby_places_data.equals("")){
+            Log.i("no"," rest");}
+        else{
+            JSONObject jsonObject = new JSONObject(nearby_places_data);
+            JSONArray jsonArray = jsonObject.getJSONArray("results");
+            Log.i("JsonArrayLen",String.valueOf(jsonArray.length()));
+            for(int i = 0; i < jsonArray.length();i++){
+                // extract useful information from the json
+                JSONObject jsonObject1 = jsonArray.getJSONObject(i);
+
+                JSONObject getLocation = jsonObject1.getJSONObject("geometry").getJSONObject("location");
+                String lat = getLocation.getString("lat");
+                String lng = getLocation.getString("lng");
+
+                JSONObject getName = jsonArray.getJSONObject(i);
+                String name = getName.getString("name");
+                Log.i("restaurant name", name);
+                JSONObject getRating = jsonArray.getJSONObject(i);
+                double rating = Double.parseDouble(getRating.getString("rating"));
+
+                JSONObject getPlaceId = jsonArray.getJSONObject(i);
+                String placeId = getPlaceId.getString("place_id");
+
+                LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
+                Restaurant restaurant = new Restaurant(name,latLng,rating,placeId);
+                nearbyRestaurant.add(restaurant);
+            }
+        }
+
+
     }
+
+
+    private void findNearbyParking(Beach beach){
+        if (curLocation == null) {
+            Log.e("Error", "current location is null in find nearby beaches.");
+        }
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
+        }
+        Log.d("search starts", "starting searching nearby parkings...");
+
+
+        String url = "https://maps.googleapis.com/maps/api/place/textsearch/json?" +
+                "location=" + beach.getLatitude() + "," + beach.getLongitude() +
+                "&query=parking" +
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializeParkingMarkers(url);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+
+        while(nearbyLots==null){
+            double i = Math.log(309209387);
+        }
+
+        while(nearbyLots.size()!=3){
+            double i = Math.log(309209387);
+            Log.i("damn", "waiting");
+        }
+
+
+        // Put the found beaches as markers onto map and add them in hashmap.
+        for(Parking parking : nearbyLots){
+            Marker curMarker = mMap.addMarker(new MarkerOptions()
+                    .position(parking.getLocation())
+                    .title(parking.getName())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
+            allParkingMarkers.add(curMarker);
+        }
+
+                    // Makes all markers clickable
+            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @SuppressLint("PotentialBehaviorOverride")
+                @Override
+                public boolean onMarkerClick(@NonNull Marker marker) {
+                    for(Parking parking : nearbyLots){
+                        if(parking.getName().equals(marker.getTitle())) {
+                            // Smoothly move the camera to the marker and display the popup window
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(parking.getLocation())
+                                    .zoom(15)
+                                    .build();
+                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                            mMap.animateCamera(cu);
+                            try {
+                                displayRoute(parking);
+                                ETA.setVisibility(View.VISIBLE);
+                                ETA.setText("ETA: " + estimate);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    for(Beach beach : nearbyBeaches){
+                        if(beach.getName().equals(marker.getTitle())) {
+                            // Smoothly move the camera to the marker and display the popup window
+                            createPopupWindow(beach, marker);
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(beach.getLocation())
+                                    .zoom(15)
+                                    .build();
+                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                            mMap.animateCamera(cu);
+                        }
+                    }
+                    return false;
+                }
+            });
+
+    }
+
+
+
+    public void initializeParkingMarkers(String url) throws IOException, JSONException {
+        nearbyLots = new ArrayList<>();
+        DownloadUrl downloadUrl = new DownloadUrl();
+        String nearby_places_data;
+        nearby_places_data = downloadUrl.retrieve_url(url);
+
+        Log.i("nearby data",nearby_places_data);
+
+        JSONObject jsonObject = new JSONObject(nearby_places_data);
+        JSONArray jsonArray = jsonObject.getJSONArray("results");
+        for(int i=0; i< 3 ; i++){
+            // extract useful information from the json
+            JSONObject jsonObject1 = jsonArray.getJSONObject(i);
+
+            JSONObject getLocation = jsonObject1.getJSONObject("geometry").getJSONObject("location");
+            String lat = getLocation.getString("lat");
+            String lng = getLocation.getString("lng");
+            Log.i("lat",lat);
+            Log.i("lng",lng);
+
+            JSONObject getName = jsonArray.getJSONObject(i);
+            String name = getName.getString("name");
+            Log.i("name",name);
+
+            JSONObject getRating = jsonArray.getJSONObject(i);
+            double rating = Double.parseDouble(getRating.getString("rating"));
+
+            JSONObject getPlaceId = jsonArray.getJSONObject(i);
+            String placeId = getPlaceId.getString("place_id");
+            Log.i("placeid",placeId);
+
+            LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
+            Parking parking = new Parking(name,latLng,placeId);
+            nearbyLots.add(parking);
+        }
+    }
+
+
+    public void displayWalk(Restaurant destination, Beach beach) throws IOException {
+        if (curLocation == null) {
+            Log.e("Error", "current location is null in find nearby beaches.");
+        }
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
+        }
+        Log.d("search starts", "starting drawing route...");
+
+        String url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=" + beach.getLatitude() + "," + beach.getLongitude() +
+                "&destination=place_id:" + destination.getPlaceId() +
+                "&mode=walking"+
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializePolyLine(url);
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+
+        while(encoded==null){
+            double i = Math.log(309209387);
+        }
+
+        List<LatLng> decoded = PolyUtil.decode(encoded);
+        poly = new PolylineOptions().addAll(decoded);
+        polyline = mMap.addPolyline(poly);
+    }
+
+    public void displayRoute(Parking destination) throws IOException {
+        if (curLocation == null) {
+            Log.e("Error", "current location is null in find nearby beaches.");
+        }
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
+        }
+        Log.d("search starts", "starting drawing route...");
+
+        String url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=" + curLocation.getLatitude() + "," + curLocation.getLongitude() +
+                "&destination=place_id:" + destination.getPlaceId() +
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializePolyLine(url);
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        thread.start();
+
+        while(encoded==null){
+            double i = Math.log(309209387);
+        }
+
+        List<LatLng> decoded = PolyUtil.decode(encoded);
+        poly = new PolylineOptions().addAll(decoded);
+        polyline = mMap.addPolyline(poly);
+    }
+
+    public void initializePolyLine(String url) throws IOException, JSONException{
+        Lat = new ArrayList<>();
+        Long = new ArrayList<>();
+        DownloadUrl downloadUrl = new DownloadUrl();
+        String nearby_places_data;
+        nearby_places_data = downloadUrl.retrieve_url(url);
+
+        JSONObject jsonObject = new JSONObject(nearby_places_data);
+        JSONArray route = jsonObject.getJSONArray("routes");
+        for(int i = 0; i < route.length(); i++){
+            JSONObject jb1 = route.getJSONObject(i);
+            JSONArray legs = jb1.getJSONArray("legs");
+            Log.i("route", legs.toString());
+            Log.i("route", String.valueOf(legs.length()));
+            JSONObject overview_polyline = jb1.getJSONObject("overview_polyline");
+            encoded = overview_polyline.getString("points");
+            Log.i("legs", String.valueOf(overview_polyline.length()));
+            for(int j = 0; j < legs.length(); j++){
+                JSONObject jb2 = legs.getJSONObject(j);
+                JSONObject eta = jb2.getJSONObject("duration");
+                estimate = eta.getString("text");
+                Log.i("ETA",estimate);
+                JSONArray steps = jb2.getJSONArray("steps");
+                for(int k = 0; k < steps.length(); k++){
+                    JSONObject jb3 = steps.getJSONObject(k);
+                    JSONObject getStartLocation = jb3.getJSONObject("start_location");
+                    String lat = getStartLocation.getString("lat");
+                    String lng = getStartLocation.getString("lng");
+                    Log.i("lat",lat);
+                    Log.i("lng",lng);
+                    Lat.add(Double.valueOf(lat));
+                    Long.add(Double.valueOf(lng));
+
+                }
+            }
+
+        }
+
+
+    }
+
+
+
 }
