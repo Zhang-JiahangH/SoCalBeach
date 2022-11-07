@@ -137,8 +137,44 @@ public class profileActivity extends AppCompatActivity implements NavigationView
                 }
         );
 
+        changeHeader();
+
         navigationView.bringToFront();
         toolbar.bringToFront();
+    }
+
+    public void changeHeader() {
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference usersRef = database.getReference("users");
+        usersRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
+                System.out.println(profile.getName());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+        usersRef.child(curUser.getUid()).child("name").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    updateHeaderText(String.valueOf(task.getResult().getValue()));
+                }
+            }
+        });
+    }
+
+    void updateHeaderText(String newUser) {
+        TextView navHead = (TextView)findViewById(R.id.bar_header_welcome);
+        navHead.setText(newUser);
     }
 
     private void initView() {
