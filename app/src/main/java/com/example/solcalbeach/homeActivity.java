@@ -2,6 +2,7 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -27,6 +28,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -36,6 +38,8 @@ import com.example.solcalbeach.util.Beach;
 import com.example.solcalbeach.util.Parking;
 import com.example.solcalbeach.util.Restaurant;
 import com.example.solcalbeach.util.DownloadUrl;
+import com.example.solcalbeach.util.Review;
+import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
@@ -57,9 +61,18 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
@@ -67,8 +80,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class homeActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
         OnMapReadyCallback{
@@ -113,13 +131,23 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
 
     // popup window needed
+    PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
     Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
 
+    // review needed
+    Beach curBeach;
+    FirebaseUser curUser;
+    private DatabaseReference mDatabase;
 
+    // Dialog
+    AlertDialog dialog;
+
+    // formating
+    NumberFormat nf;
 
 
     @SuppressLint("MissingInflatedId")
@@ -141,6 +169,21 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnRange1000.setVisibility(View.INVISIBLE);
         btnRange2000.setVisibility(View.INVISIBLE);
         btnRange3000.setVisibility(View.INVISIBLE);
+
+        // Init number format
+        nf = NumberFormat.getNumberInstance();
+        nf.setMaximumFractionDigits(1);
+        nf.setRoundingMode(RoundingMode.UP);
+
+        // Init database basic
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+
+        // Initial user Info
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        curUser = mAuth.getCurrentUser();
+
+        // Change Header Info
+        changeHeader();
 
         // Initialize the Tool Bar
         setSupportActionBar(toolbar);
@@ -175,11 +218,55 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             supportMapFragment.getMapAsync(this);
         }
 
+        // Initialize dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(homeActivity.this);
+        // Add the buttons
+        builder.setMessage("Message Created/Updated")
+                .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        popupWindow.dismiss();
+                    }
+                });
+        dialog = builder.create();
 
 
         navigationView.bringToFront();
         toolbar.bringToFront();
 
+    }
+
+    public void changeHeader() {
+        final FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference usersRef = database.getReference("users");
+        usersRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
+                System.out.println(profile.getName());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+        usersRef.child(curUser.getUid()).child("name").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    updateHeaderText(String.valueOf(task.getResult().getValue()));
+                }
+            }
+        });
+    }
+
+    void updateHeaderText(String newUser) {
+        TextView navHead = (TextView)findViewById(R.id.bar_header_welcome);
+        navHead.setText(newUser);
     }
 
     @Override
@@ -322,6 +409,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             public boolean onMarkerClick(@NonNull Marker marker) {
                 for(Beach beach : nearbyBeaches){
                     if(beach.getName().equals(marker.getTitle())) {
+                        curBeach = beach;
                         // Smoothly move the camera to the marker and display the popup window
                         createPopupWindow(beach, marker);
                         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -366,9 +454,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             JSONObject getPlaceId = jsonArray.getJSONObject(i);
             String placeId = getPlaceId.getString("place_id");
 
+            int user_ratings_total = Integer.parseInt(getRating.getString("user_ratings_total"));
+
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            Beach beach = new Beach(name,latLng,rating,placeId);
-            nearbyBeaches.add(beach);
+            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
+            nearbyBeaches.add(curBeach);
         }
     }
 
@@ -377,7 +467,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         Log.i("create pop up","got here");
         LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         View beachPopupView = layoutInflater.inflate(R.layout.pop_up_window,null);
-        PopupWindow popupWindow = new PopupWindow(beachPopupView,900,1500,true);
+        popupWindow = new PopupWindow(beachPopupView,900,1500,true);
 
         tvPopupName = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_name);
         tvPopupRating = (TextView) beachPopupView.findViewById(R.id.tv_pop_up_rating);
@@ -389,7 +479,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
 
         tvPopupName.setText(beach.getName());
-        tvPopupRating.setText("rating: "+ String.valueOf(beach.getRating())+" out of 5");
+        upDateRating();
+        Log.e("rating: ", String.valueOf(beach.getRating()));
+        tvPopupRating.setText("rating: "+ nf.format(beach.getRating())+" out of 5");
 
         popupWindow.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
 
@@ -539,9 +631,50 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onClick(View view) {
                 Float rating = ratingBar.getRating();
+                Review newReview;
+                if(cbAnonymous.isChecked()) {
+                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName());
+                }
+                else {
+                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName());
+                }
                 // TODO: change the layout, record the rating into current beach and current user profile.
+                UUID reviewId = UUID.randomUUID();
+                writeReview(reviewId, newReview);
+                upDateRating();
+                dialog.show();
             }
         });
+    }
+
+    public void writeReview(UUID uuid, Review review) {
+        mDatabase.child("reviews").child(uuid.toString()).setValue(review);
+    }
+
+    public void upDateRating() {
+        Log.e("update rating:", "start");
+        Query res = mDatabase.child("reviews").orderByChild("placeId").equalTo(curBeach.getPlaceId());
+        res.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.e("firebase", "Error getting data", task.getException());
+            }
+            else {
+                Log.e("firebase", String.valueOf(task.getResult().getValue()));
+                Map<String, HashMap<String,String>> reviews = (HashMap<String, HashMap<String,String>>)task.getResult().getValue();
+                if(reviews != null) {
+                    for(HashMap<String,String> review:reviews.values()) {
+                        Log.e("placeId", review.get("placeId"));
+                        changeRatingInfo(Double.parseDouble(review.get("rating")));
+                    }
+                }
+            }
+        });
+        Log.e("update rating:", "end");
+    }
+
+    public void changeRatingInfo(double rates) {
+        curBeach.setRating((curBeach.getRating() * curBeach.getUser_ratings_total() + rates) / (curBeach.getUser_ratings_total() + 1));
+        curBeach.setUser_ratings_total(curBeach.getUser_ratings_total() + 1);
     }
 
 
@@ -615,6 +748,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     for(Beach beach : nearbyBeaches){
                         if(beach.getName().equals(marker.getTitle())) {
                             // Smoothly move the camera to the marker and display the popup window
+                            curBeach = beach;
                             createPopupWindow(beach, marker);
                             CameraPosition cameraPosition = new CameraPosition.Builder()
                                     .target(beach.getLocation())
@@ -746,6 +880,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     for(Beach beach : nearbyBeaches){
                         if(beach.getName().equals(marker.getTitle())) {
                             // Smoothly move the camera to the marker and display the popup window
+                            curBeach = beach;
                             createPopupWindow(beach, marker);
                             CameraPosition cameraPosition = new CameraPosition.Builder()
                                     .target(beach.getLocation())
@@ -909,10 +1044,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
 
         }
-
-
     }
-
-
 
 }

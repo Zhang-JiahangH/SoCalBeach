@@ -66,6 +66,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".profileActivity"
+            android:exported="true"
+            android:label="ProfilePage">
+        </activity>
 
     </application>
 

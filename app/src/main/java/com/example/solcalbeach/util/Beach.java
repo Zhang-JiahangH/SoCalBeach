@@ -7,25 +7,39 @@ public class Beach{
     private String name;
     private double rating;
     private String placeId;
+    private int user_ratings_total;
     // TODO: implement rating related stuff(list+constructor...)
 
-    public Beach(String name, LatLng location, double rating, String placeId){
+    public Beach(String name, LatLng location, double rating, String placeId, int user_ratings_total){
         this.name = name;
         this.location = location;
         this.rating=rating;
         this.placeId = placeId;
+        this.user_ratings_total = user_ratings_total;
     }
 
-    public String getPlaceId() {
-        return placeId;
+    public LatLng getLocation() {
+        return location;
     }
 
-    public void setPlaceId(String placeId) {
-        this.placeId = placeId;
+    public void setLocation(LatLng location) {
+        this.location = location;
+    }
+
+    public Double getLatitude(){
+        return location.latitude;
+    }
+
+    public Double getLongitude(){
+        return location.longitude;
     }
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public double getRating() {
@@ -36,15 +50,20 @@ public class Beach{
         this.rating = rating;
     }
 
-    public LatLng getLocation() {
-        return location;
+    public String getPlaceId() {
+        return placeId;
     }
 
-    public Double getLatitude(){
-        return location.latitude;
+    public void setPlaceId(String placeId) {
+        this.placeId = placeId;
     }
 
-    public Double getLongitude(){
-        return location.longitude;
+    public int getUser_ratings_total() {
+        return user_ratings_total;
     }
+
+    public void setUser_ratings_total(int user_ratings_total) {
+        this.user_ratings_total = user_ratings_total;
+    }
+
 }
