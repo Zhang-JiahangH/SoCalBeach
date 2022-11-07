@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.example.solcalbeach.util.Parking;
 import com.example.solcalbeach.util.Review;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -44,7 +45,7 @@ import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-public class profileActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
+public class profileActivity extends AppCompatActivity{
 
     private ListView listView;
     private RelativeLayout rl_head;
@@ -78,8 +79,6 @@ public class profileActivity extends AppCompatActivity implements NavigationView
     private DatabaseReference mDatabase;
     Map<String, HashMap<String, String>> results;
 
-    DrawerLayout drawerLayout;
-    NavigationView navigationView;
     Toolbar toolbar;
 
     @SuppressLint("MissingInflatedId")
@@ -88,10 +87,6 @@ public class profileActivity extends AppCompatActivity implements NavigationView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.profile_activity);
 
-        drawerLayout = findViewById(R.id.prof_drawer_layout);
-        navigationView = findViewById(R.id.prof_nav_view);
-        toolbar = findViewById(R.id.prof_toolbar);
-
         mAuth = FirebaseAuth.getInstance();
         curUser = mAuth.getCurrentUser();
         userName = curUser.getDisplayName();
@@ -99,82 +94,22 @@ public class profileActivity extends AppCompatActivity implements NavigationView
         mDatabase = FirebaseDatabase.getInstance().getReference();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 //        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        toolbar = findViewById(R.id.prof_toolbar);
 
         initView();
         initDistance();
         initReviews();
 
         setSupportActionBar(toolbar);
-
-        // Initialize navigation drawer menu
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
-                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.black));
-        drawerLayout.addDrawerListener(toggle);
-        toggle.syncState();
-
-        // Initialize clickable items in the menu
-        navigationView.setNavigationItemSelectedListener(
-                new NavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                        if(item.getItemId() == R.id.nav_home) {
-                            Log.e("destination: ", "homepage");
-                            Intent intent = new Intent();
-                            intent.setClass(profileActivity.this,homeActivity.class);
-                            startActivity(intent);
-                        }
-                        else if(item.getItemId() == R.id.nav_profile) {
-                            Intent intent = new Intent();
-                            intent.setClass(profileActivity.this,profileActivity.class);
-                            startActivity(intent);
-                        }
-                        else {
-                            Log.e("Error: ", "id not found");
-                        }
-                        return false;
-                    }
-                }
-        );
-
-        changeHeader();
-
-        navigationView.bringToFront();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                Log.e("back: ", "pushed");
+                onBackPressed();
+            }
+        });
         toolbar.bringToFront();
-    }
-
-    public void changeHeader() {
-        final FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference usersRef = database.getReference("users");
-        usersRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
-                System.out.println(profile.getName());
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                System.out.println("The read failed: " + databaseError.getCode());
-            }
-        });
-        usersRef.child(curUser.getUid()).child("name").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DataSnapshot> task) {
-                if (!task.isSuccessful()) {
-                    Log.e("firebase", "Error getting data", task.getException());
-                }
-                else {
-                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
-                    updateHeaderText(String.valueOf(task.getResult().getValue()));
-                }
-            }
-        });
-    }
-
-    void updateHeaderText(String newUser) {
-        TextView navHead = (TextView)findViewById(R.id.bar_header_welcome);
-        navHead.setText(newUser);
     }
 
     private void initView() {
@@ -248,17 +183,20 @@ public class profileActivity extends AppCompatActivity implements NavigationView
             else {
                 Log.d("firebase", String.valueOf(task.getResult().getValue()));
                 updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
-                Log.e("result: ", task.getResult().getValue().toString());
+//                Log.e("result: ", task.getResult().getValue().toString());
             }
         }});
         Log.e("init Reviews", "end");
     }
 
     private void updateList(Map<String, HashMap<String, String>> reviews) {
+        if(reviews == null) {
+            return;
+        }
         ArrayList<Review> toBeHandle = new ArrayList<>();
         for(HashMap<String,String> review:reviews.values()) {
             Log.e("item: ", review.get("placeId"));
-            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName")));
+            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId")));
         }
         ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
         listView.setAdapter(adapter);
@@ -358,7 +296,4 @@ public class profileActivity extends AppCompatActivity implements NavigationView
         }
 
     }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) { return true; }
 }

@@ -5,12 +5,14 @@ public class Review {
     private String userId;
     private String placeId;
     private String beachName;
+    private String reviewId;
 
-    public Review(String rating, String userId, String placeId, String beachName) {
+    public Review(String rating, String userId, String placeId, String beachName, String reviewId) {
         this.rating = rating;
         this.placeId = placeId;
         this.userId = userId;
         this.beachName = beachName;
+        this.reviewId = reviewId;
     }
 
     public String getRating() {
@@ -43,5 +45,13 @@ public class Review {
 
     public void setBeachName(String beachName) {
         this.beachName = beachName;
+    }
+
+    public String getReviewId() {
+        return reviewId;
+    }
+
+    public void setReviewId(String reviewId) {
+        this.reviewId = reviewId;
     }
 }
