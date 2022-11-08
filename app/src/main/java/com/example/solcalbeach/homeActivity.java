@@ -205,6 +205,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             intent.setClass(homeActivity.this,profileActivity.class);
                             startActivity(intent);
                         }
+                        else if(item.getItemId() == R.id.History) {
+                            Intent intent = new Intent();
+                            intent.setClass(homeActivity.this,historyActivity.class);
+                            startActivity(intent);
+                        }
                         return false;
                     }
                 }
@@ -301,7 +306,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE);
-            return;
+//            return;
         }
 
         isPermissionGranted = true;
