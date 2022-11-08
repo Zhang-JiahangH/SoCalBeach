@@ -45,6 +45,7 @@ import com.example.solcalbeach.util.Parking;
 import com.example.solcalbeach.util.Restaurant;
 import com.example.solcalbeach.util.DownloadUrl;
 import com.example.solcalbeach.util.Review;
+import com.example.solcalbeach.util.TravelHistory;
 import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -89,7 +90,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,13 +137,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     List<Double> Long;
     String encoded, estimate;
     Polyline polyline;
-
+    Calendar startTime;
+    Calendar endTime;
 
     // popup window needed
     PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
 
@@ -175,6 +179,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnRange1000.setVisibility(View.INVISIBLE);
         btnRange2000.setVisibility(View.INVISIBLE);
         btnRange3000.setVisibility(View.INVISIBLE);
+        endRoute = (Button) findViewById(R.id.btn_end_route);
+        endRoute.setVisibility(View.INVISIBLE);
 
         // Init number format
         nf = NumberFormat.getNumberInstance();
@@ -346,11 +352,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     mMap.setMyLocationEnabled(true);
 
                     // Find nearby beaches and initialize them on the map
-
                     findNearbyBeaches();
-
-
-
 
                 } else {
                     Toast.makeText(homeActivity.this, "unable to get location", Toast.LENGTH_SHORT).show();
@@ -531,7 +533,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
-
         // Nearby Restaurant button onclick listener
         btnRestaurant.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -618,8 +619,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 beach.getLocation(), 10));
                         nearbyRestaurant.removeAll(nearbyRestaurant);
+                        endRoute.setVisibility(View.INVISIBLE);
+                        endRoute.setVisibility(View.INVISIBLE);
                         if(polyline != null){
-                        polyline.remove();}
+                            polyline.setVisible(false);
+                            polyline.remove();}
                     }
                 });
                 // 6. call api to find nearby restaurants
@@ -628,6 +632,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
 
+        // Initialize the submit review button for user to leave a review
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -838,14 +843,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         });
         thread.start();
 
-        while(nearbyLots==null){
-            double i = Math.log(309209387);
-        }
-
-        while(nearbyLots.size()!=3){
-            double i = Math.log(309209387);
-        }
-
+        while(nearbyLots==null){double i = Math.log(309209387);}
+        while(nearbyLots.size()!=3){double i = Math.log(309209387);}
 
         // Put the found beaches as markers onto map and add them in hashmap.
         for(Parking parking : nearbyLots){
@@ -873,7 +872,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             if(polyline != null){
                                 polyline.remove();}
                             try {
-                                displayRoute(parking);
+                                displayRoute(parking,beach);
                                 ETA.setVisibility(View.VISIBLE);
                                 ETA.setText("ETA: " + estimate);
                             } catch (IOException e) {
@@ -976,7 +975,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         polyline = mMap.addPolyline(poly);
     }
 
-    public void displayRoute(Parking destination) throws IOException {
+
+    public void displayRoute(Parking destination, Beach beach) throws IOException {
         if (curLocation == null) {
             Log.e("Error", "current location is null in find nearby beaches.");
         }
@@ -1002,13 +1002,39 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         });
         thread.start();
 
-        while(encoded==null){
-            double i = Math.log(309209387);
-        }
+        while(encoded==null){double i = Math.log(309209387);}
 
         List<LatLng> decoded = PolyUtil.decode(encoded);
         PolylineOptions poly = new PolylineOptions().addAll(decoded);
+        startTime = Calendar.getInstance();
         polyline = mMap.addPolyline(poly);
+        endRoute.setVisibility(View.VISIBLE);
+        endRoute.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast save = Toast.makeText(getApplicationContext(),"Travel History recorded.", Toast.LENGTH_LONG);
+                endTime = Calendar.getInstance();
+                TravelHistory newTravel = new TravelHistory(beach.getName(),startTime,endTime);
+                // TODO:Save the travel history to database
+
+
+                for(Marker marker1: allRestaurantMarkers){marker1.remove();}
+                for(Marker marker: allParkingMarkers){marker.remove();}
+                for(Marker marker1: allBeachMarkers){marker1.setVisible(true);}
+                btnHomeBack.setVisibility(View.INVISIBLE);
+                btnHomeBack.setOnClickListener(null);
+                endRoute.setVisibility(View.INVISIBLE);
+                endRoute.setVisibility(View.INVISIBLE);
+                ETA.setVisibility(View.INVISIBLE);
+                ETA.setText("");
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                        beach.getLocation(), 10));
+                if(polyline != null){
+                    polyline.setVisible(false);
+                    polyline.remove();}
+
+            }
+        });
     }
 
     public void initializePolyLine(String url) throws IOException, JSONException{
