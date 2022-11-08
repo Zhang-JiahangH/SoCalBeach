@@ -2,11 +2,16 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationRequest;
 import android.os.Build;
@@ -32,6 +37,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.solcalbeach.util.Beach;
@@ -51,6 +57,7 @@ import com.google.android.gms.maps.GoogleMap;
 
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.Circle;
@@ -395,12 +402,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             Marker curMarker = mMap.addMarker(new MarkerOptions()
                     .position(beach.getLocation())
                     .title(beach.getName())
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.beach))));
             allBeachMarkers.add(curMarker);
         }
-
-
-
 
         // Makes all markers clickable
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
@@ -423,7 +427,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 return false;
             }
         });
-
     }
 
 
@@ -620,7 +623,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     }
                 });
                 // 6. call api to find nearby restaurants
-
                 // 7. add restaurants markers to map, set onclicklistener for popup window
 
             }
@@ -719,7 +721,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 Marker curMarker = mMap.addMarker(new MarkerOptions()
                         .position(restaurant.getLocation())
                         .title(restaurant.getName())
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+                        .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.food))));
                 allRestaurantMarkers.add(curMarker);
             }
 
@@ -850,7 +852,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             Marker curMarker = mMap.addMarker(new MarkerOptions()
                     .position(parking.getLocation())
                     .title(parking.getName())
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
+                    .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.parking_location))));
             allParkingMarkers.add(curMarker);
         }
 

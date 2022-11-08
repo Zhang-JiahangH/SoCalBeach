@@ -6,7 +6,7 @@
     <string name="your_email">your email</string>
     <string name="your_pwd">type a strong password</string>
     <string name="re_type_password">type your password again</string>
-    <string name="register_remind">Don\'t have an account? Register now</string>
+    <string name="register_remind">Don\'t have an account?</string>
     <string name="login">Log In</string>
     <string name="navigation_drawer_open">Open Nav Drawer</string>
     <string name="navigation_drawer_close">Close Nav Drawer</string>

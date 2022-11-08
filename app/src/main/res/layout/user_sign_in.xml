@@ -6,25 +6,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="20dp"
-    android:paddingTop="180sp"
+    android:background="@drawable/beach_background"
     android:gravity="center_horizontal"
     android:orientation="vertical"
+    android:paddingTop="150sp"
     tools:context=".userSignIn">
 
-
     <TextView
-        android:id="@+id/logo_log_in"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Log In"
-        android:textSize="30sp" />
+        android:fontFamily="@font/allan_bold"
+        android:paddingTop="10sp"
+        android:paddingBottom="20sp"
+        android:textColor="@color/black"
+        android:text="Welcome to SoCalBeach"
+        android:textSize="34sp" />
 
     <TextView
         android:id="@+id/tv_signin_error"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:text=""
+        android:fontFamily="@font/allerta"
         android:textColor="#CA0000" />
 
     <EditText
@@ -49,6 +52,9 @@
         android:id="@+id/btn_logIn"
         android:layout_width="150dp"
         android:layout_height="45dp"
+        android:fontFamily="@font/allan_bold"
+        android:backgroundTint="@color/white"
+        android:textColor="@color/black"
         android:text="@string/login" />
 
     <TextView
@@ -56,13 +62,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
+        android:fontFamily="@font/allerta"
         android:text="@string/register_remind"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/btn_to_sign_up"
         android:layout_width="150dp"
         android:layout_height="45dp"
+        android:fontFamily="@font/allan_bold"
+        android:backgroundTint="@color/white"
+        android:textColor="@color/black"
         android:text="@string/register" />
 
 </LinearLayout>
