@@ -1,7 +1,7 @@
 # SoCalBeach
 Team members: Jiahang Zhang, Quanyong Bi, Yuchen Wang.
 
-## How to use:
+## To Launch the program
 1. Clone or download the zip of the project and open it in Android studio.
 2. Build gradle.
 3. Check in the local.property to see if the correct API key is stored in proper location.
