@@ -42,7 +42,7 @@ public class TravelHistory {
     @Override
     public String toString() {
         String toRet = "Travel to: "+beachName+" from "+simpleDateFormat.format(startTime.getTime())
-                +" to "+ simpleDateFormat.format(endTime.getTime());
+                +" to "+ simpleDateFormat.format(endTime.getTime() );
         return toRet;
     }
 }

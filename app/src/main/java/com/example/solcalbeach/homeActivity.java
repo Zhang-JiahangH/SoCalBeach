@@ -582,6 +582,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                 beach.getLocation(), 10));
                         btnHomeBack.setVisibility(View.INVISIBLE);
                         ETA.setVisibility(View.INVISIBLE);
+                        endRoute.setVisibility(View.INVISIBLE);
+                        endRoute.setOnClickListener(null);
                         if(polyline != null){
                             polyline.remove();}
                         nearbyLots.removeAll(nearbyLots);
