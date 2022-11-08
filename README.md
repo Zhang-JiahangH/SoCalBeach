@@ -14,20 +14,17 @@ Team members: Jiahang Zhang, Quanyong Bi, Yuchen Wang.
 ## Short Instruction on using the program
 1. To access the map page, Sign in/ Sign up first.
 
-![image](https://user-images.githubusercontent.com/84767679/200502158-8f3c252e-ac89-4d8c-b2ab-dd77cc7ae1b4.png)
-
-2. The virtual machine has limited run-speed. **To avoid unnecessary bugs, don't double click any button** XD.
+2. The virtual machine has limited run-speed, which can caused many unexpected bug:
+  
+  (a). don't press sign in/ register button over and over again.
+  
+  (b). In the routing system, whenever you click on a parking icon or restaurant icon, the route will be shown. **However, due to api run speed, when you click on another icon when one route is on map, you may need to clikc on the icon twice to update the route polyline. We'll try to fix the bug in future development.**
 
 3. When you are led to the map page, zoom out to see the nearby beaches.
 ![image](https://user-images.githubusercontent.com/84767679/200502240-ff0ed5ba-cff4-4e3d-8b19-3ac6e566b789.png)
 
 4. All markers are clickable. And all operations are straightforward.
 
-5. Menu side bar can be opened from the top
-
-![image](https://user-images.githubusercontent.com/84767679/200502300-a573214d-7e28-49be-b851-f2d23545934a.png)
-
-6. The GPS button can re-located where you at.
-
-![image](https://user-images.githubusercontent.com/84767679/200502467-124f6a54-f897-4c2b-9a64-a2f62656a9e0.png)
+5. Menu side bar can be opened from the top left icon.
+6. The GPS button on right side can re-located where you at.
 
