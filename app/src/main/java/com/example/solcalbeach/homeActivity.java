@@ -2,6 +2,8 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -166,9 +168,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        Log.e("homeActivity: ", "create");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home);
-
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
@@ -234,6 +236,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             intent.setClass(homeActivity.this,historyActivity.class);
                             startActivity(intent);
                         }
+                        else if(item.getItemId() == R.id.nav_Log_out) {
+                            FirebaseAuth.getInstance().signOut();
+                            restartApp();
+                        }
                         return false;
                     }
                 }
@@ -243,8 +249,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         getCurrentLocation();
         if (isPermissionGranted) {
+            Log.e("seems like a creation", "of map");
             SupportMapFragment supportMapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.home_map_view);
-            supportMapFragment.getMapAsync(this);
+            supportMapFragment.getMapAsync(homeActivity.this);
         }
 
         // Initialize dialog
@@ -262,6 +269,15 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         navigationView.bringToFront();
         toolbar.bringToFront();
 
+    }
+
+    private void restartApp() {
+        Intent intent = new Intent(getApplicationContext(), userSignIn.class);
+        int mPendingIntentId = 12345;
+        PendingIntent mPendingIntent = PendingIntent.getActivity(getApplicationContext(), mPendingIntentId, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager mgr = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+        mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+        System.exit(0);
     }
 
     public void changeHeader() {
@@ -309,6 +325,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.e("creation of map", " done");
         mMap = googleMap;
 
         //customize the styling of the base map
@@ -474,16 +491,17 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
 
-            JSONObject getRating = jsonArray.getJSONObject(i);
-            double rating = Double.parseDouble(getRating.getString("rating"));
+//            JSONObject getRating = jsonArray.getJSONObject(i);
+            double rating = 0.0;
 
             JSONObject getPlaceId = jsonArray.getJSONObject(i);
             String placeId = getPlaceId.getString("place_id");
 
-            int user_ratings_total = Integer.parseInt(getRating.getString("user_ratings_total"));
+            int user_ratings_total = 0;
 
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
             curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
+            upDateRating();
             nearbyBeaches.add(curBeach);
         }
     }
@@ -547,7 +565,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         tvPopupName.setText(beach.getName());
         upDateRating();
         Log.e("rating: ", String.valueOf(beach.getRating()));
-        tvPopupRating.setText("rating: "+ nf.format(beach.getRating())+" out of 5");
+        tvPopupRating.setText("rating: "+ nf.format(beach.getRating())+" out of 5 by " + String.valueOf(beach.getUser_ratings_total()) + " people");
 
         popupWindow.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
 
@@ -732,6 +750,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 Log.e("firebase", String.valueOf(task.getResult().getValue()));
                 Map<String, HashMap<String,String>> reviews = (HashMap<String, HashMap<String,String>>)task.getResult().getValue();
                 if(reviews != null) {
+                    // recalculate
+                    curBeach.setRating(0.0);
+                    curBeach.setUser_ratings_total(0);
                     for(HashMap<String,String> review:reviews.values()) {
                         Log.e("placeId", review.get("placeId"));
                         changeRatingInfo(Double.parseDouble(review.get("rating")));
@@ -1188,6 +1209,23 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
 
         }
+    }
+    @Override
+    public void onResume() {
+        Log.e("homeActivity: ", "resume");
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        Log.e("homeActivity: ",  "pause");
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.e("homeActivity: ", "destory");
+        super.onDestroy();
     }
 
 }

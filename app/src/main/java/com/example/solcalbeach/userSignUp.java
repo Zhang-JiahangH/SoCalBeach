@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -34,6 +35,8 @@ public class userSignUp extends AppCompatActivity {
     private Button reg_but;
     private FirebaseAuth mAuth;
 
+    Toolbar toolbar;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +49,8 @@ public class userSignUp extends AppCompatActivity {
             error.setText(getIntent().getStringExtra("error"));
         }
 
+        toolbar = findViewById(R.id.signup_toolbar);
+
         reg_but = (Button) findViewById(R.id.btn_register);
         reg_but.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -53,6 +58,17 @@ public class userSignUp extends AppCompatActivity {
                 record_new_user();
             }
         });
+
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                Log.e("back: ", "pushed");
+                onBackPressed();
+            }
+        });
+        toolbar.bringToFront();
     }
 
     public void finishRegister(){
