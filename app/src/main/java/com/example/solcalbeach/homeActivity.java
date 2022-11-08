@@ -269,6 +269,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         usersRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                Log.e("name: ", dataSnapshot.getValue().toString());
                 userRegisterHelper profile = dataSnapshot.getValue(userRegisterHelper.class);
                 System.out.println(profile.getName());
             }
@@ -294,7 +295,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     void updateHeaderText(String newUser) {
         TextView navHead = (TextView)findViewById(R.id.bar_header_welcome);
-        navHead.setText(newUser);
+        if(navHead != null) {
+            navHead.setText(newUser);
+        }
     }
 
     @Override
