@@ -126,7 +126,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     List<Double> Lat;
     List<Double> Long;
     String encoded, estimate;
-    PolylineOptions poly;
     Polyline polyline;
 
 
@@ -738,6 +737,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                     .build();
                             CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
                             mMap.animateCamera(cu);
+                            if(polyline != null){
+                                polyline.remove();}
                             try {
                                 displayWalk(restaurant, beach);
                             } catch (IOException e) {
@@ -841,7 +842,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
         while(nearbyLots.size()!=3){
             double i = Math.log(309209387);
-            Log.i("damn", "waiting");
         }
 
 
@@ -868,6 +868,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                     .build();
                             CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
                             mMap.animateCamera(cu);
+                            if(polyline != null){
+                                polyline.remove();}
                             try {
                                 displayRoute(parking);
                                 ETA.setVisibility(View.VISIBLE);
@@ -968,7 +970,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         }
 
         List<LatLng> decoded = PolyUtil.decode(encoded);
-        poly = new PolylineOptions().addAll(decoded);
+        PolylineOptions poly = new PolylineOptions().addAll(decoded);
         polyline = mMap.addPolyline(poly);
     }
 
@@ -1003,7 +1005,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         }
 
         List<LatLng> decoded = PolyUtil.decode(encoded);
-        poly = new PolylineOptions().addAll(decoded);
+        PolylineOptions poly = new PolylineOptions().addAll(decoded);
         polyline = mMap.addPolyline(poly);
     }
 
