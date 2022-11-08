@@ -6,7 +6,9 @@
         <entry key="app/src/main/res/layout/activity_maps.xml" value="0.2375" />
         <entry key="app/src/main/res/layout/fragment_map.xml" value="0.15520833333333334" />
         <entry key="app/src/main/res/layout/home.xml" value="0.2128623188405797" />
-        <entry key="app/src/main/res/layout/pop_up_window.xml" value="0.19746376811594202" />
+        <entry key="app/src/main/res/layout/pop_up_window.xml" value="0.1" />
+        <entry key="app/src/main/res/layout/reestaurant_details.xml" value="0.18840579710144928" />
+        <entry key="app/src/main/res/layout/restaurant_details.xml" value="0.26510416666666664" />
       </map>
     </option>
   </component>

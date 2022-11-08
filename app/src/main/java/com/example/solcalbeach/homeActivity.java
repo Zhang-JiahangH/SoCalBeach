@@ -470,6 +470,46 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             nearbyBeaches.add(curBeach);
         }
     }
+    @SuppressLint({"SetTextI18n", "MissingInflatedId"})
+    public void createWindow(Restaurant restaurant, Marker marker){
+        Log.i("create pop up","got here");
+        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View restaurantPopupView = layoutInflater.inflate(R.layout.restaurant_details,null);
+        PopupWindow rest = new PopupWindow(restaurantPopupView,900,1500,true);
+
+        ImageButton btnPopupBack = (ImageButton) restaurantPopupView.findViewById(R.id.imgBtn_popup_return);
+        TextView tvPopupName = (TextView) restaurantPopupView.findViewById(R.id.restaurant_name);
+        TextView tvPopupAddress = (TextView) restaurantPopupView.findViewById(R.id.restaurant_address);
+        TextView tvPopupOpenHours = (TextView) restaurantPopupView.findViewById(R.id.open);
+        TextView tvPopupRating = (TextView) restaurantPopupView.findViewById(R.id.rating);
+
+
+        tvPopupName.setText(restaurant.getName());
+        tvPopupAddress.setText(restaurant.getAddress());
+        if (restaurant.getOpen()){
+        tvPopupOpenHours.setText("Open Now");}
+        else{
+            tvPopupOpenHours.setText("Closed");
+        }
+        tvPopupRating.setText("Rating: "+ nf.format(restaurant.getRating())+"/ 5");
+
+        rest.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
+
+        btnPopupBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                rest.dismiss();
+            }
+        });
+
+        btnDirection.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                rest.dismiss();
+            }
+        });
+
+    }
 
     @SuppressLint({"SetTextI18n", "MissingInflatedId"})
     public void createPopupWindow(Beach beach, Marker marker){
@@ -742,6 +782,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 public boolean onMarkerClick(@NonNull Marker marker) {
                     for(Restaurant restaurant : nearbyRestaurant){
                         if(restaurant.getName().equals(marker.getTitle())) {
+                            createWindow(restaurant, marker);
                             // Smoothly move the camera to the marker and display the popup window
                             CameraPosition cameraPosition = new CameraPosition.Builder()
                                     .target(restaurant.getLocation())
@@ -753,6 +794,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                 polyline.remove();}
                             try {
                                 displayWalk(restaurant, beach);
+                                //todo: store info
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -802,14 +844,21 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 JSONObject getName = jsonArray.getJSONObject(i);
                 String name = getName.getString("name");
                 Log.i("restaurant name", name);
+
                 JSONObject getRating = jsonArray.getJSONObject(i);
                 double rating = Double.parseDouble(getRating.getString("rating"));
+
+
+                JSONObject getAddress = jsonArray.getJSONObject(i);
+                String address = getAddress.getString("vicinity");
+
+                Boolean open = jsonArray.getJSONObject(i).getJSONObject("opening_hours").getBoolean("open_now");
 
                 JSONObject getPlaceId = jsonArray.getJSONObject(i);
                 String placeId = getPlaceId.getString("place_id");
 
                 LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-                Restaurant restaurant = new Restaurant(name,latLng,rating,placeId);
+                Restaurant restaurant = new Restaurant(name,latLng,rating,placeId, open, address);
                 nearbyRestaurant.add(restaurant);
             }
         }
@@ -963,7 +1012,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void run() {
                 try {
-                    initializePolyLine(url);
+                    initializeWalkLine(url);
                 } catch (IOException | JSONException e) {
                     e.printStackTrace();
                 }
@@ -1040,6 +1089,41 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             }
         });
+    }
+    public void initializeWalkLine(String url) throws IOException, JSONException{
+        Lat = new ArrayList<>();
+        Long = new ArrayList<>();
+        DownloadUrl downloadUrl = new DownloadUrl();
+        String nearby_places_data;
+        nearby_places_data = downloadUrl.retrieve_url(url);
+
+        JSONObject jsonObject = new JSONObject(nearby_places_data);
+        JSONArray route = jsonObject.getJSONArray("routes");
+        for(int i = 0; i < route.length(); i++){
+            JSONObject jb1 = route.getJSONObject(i);
+            JSONArray legs = jb1.getJSONArray("legs");
+            Log.i("route", legs.toString());
+            Log.i("route", String.valueOf(legs.length()));
+            JSONObject overview_polyline = jb1.getJSONObject("overview_polyline");
+            encoded = overview_polyline.getString("points");
+            Log.i("legs", String.valueOf(overview_polyline.length()));
+            for(int j = 0; j < legs.length(); j++){
+                JSONObject jb2 = legs.getJSONObject(j);
+                JSONArray steps = jb2.getJSONArray("steps");
+                for(int k = 0; k < steps.length(); k++){
+                    JSONObject jb3 = steps.getJSONObject(k);
+                    JSONObject getStartLocation = jb3.getJSONObject("start_location");
+                    String lat = getStartLocation.getString("lat");
+                    String lng = getStartLocation.getString("lng");
+                    Log.i("lat",lat);
+                    Log.i("lng",lng);
+                    Lat.add(Double.valueOf(lat));
+                    Long.add(Double.valueOf(lng));
+
+                }
+            }
+
+        }
     }
 
     public void initializePolyLine(String url) throws IOException, JSONException{
