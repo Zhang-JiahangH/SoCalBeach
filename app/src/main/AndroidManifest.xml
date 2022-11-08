@@ -73,8 +73,9 @@
 
         <activity android:name=".historyActivity"
             android:exported="true"
-            android:label="HistoryPage">
+            android:label="history page">
         </activity>
+
     </application>
 
 </manifest>

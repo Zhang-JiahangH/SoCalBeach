@@ -110,6 +110,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     List<Marker> allBeachMarkers= new ArrayList<>();
     List<Marker> allRestaurantMarkers = new ArrayList<>();
     List<Marker> allParkingMarkers = new ArrayList<>();
+    ImageButton imgBtnGps;
 
     boolean isPermissionGranted;
     private GoogleMap mMap;
@@ -183,6 +184,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnRange3000.setVisibility(View.INVISIBLE);
         endRoute = (Button) findViewById(R.id.btn_end_route);
         endRoute.setVisibility(View.INVISIBLE);
+        imgBtnGps = (ImageButton) findViewById(R.id.imgBtn_gps);
+        imgBtnGps.bringToFront();
+        imgBtnGps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getCurrentLocation();
+            }
+        });
 
         // Init number format
         nf = NumberFormat.getNumberInstance();
@@ -322,7 +331,6 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE);
 //            return;
         }
-
         isPermissionGranted = true;
 
         @SuppressLint("MissingPermission") Task<Location> task = fusedLocationProviderClient.getLastLocation();
@@ -347,6 +355,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                                         return;
                                     }
                                     curLocation = locationResult.getLastLocation();
+                                    while(curLocation==null){
+                                        curLocation = locationResult.getLastLocation();
+                                    }
                                 }
                             };
                         }
