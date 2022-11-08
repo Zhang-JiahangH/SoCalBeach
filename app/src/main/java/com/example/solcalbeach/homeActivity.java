@@ -46,6 +46,7 @@ import com.example.solcalbeach.util.Restaurant;
 import com.example.solcalbeach.util.DownloadUrl;
 import com.example.solcalbeach.util.Review;
 import com.example.solcalbeach.util.TravelHistory;
+import com.example.solcalbeach.util.history;
 import com.example.solcalbeach.util.userRegisterHelper;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -73,6 +74,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -1021,7 +1023,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 endTime = Calendar.getInstance();
                 TravelHistory newTravel = new TravelHistory(beach.getName(),startTime,endTime);
                 // TODO:Save the travel history to database
-
+                UUID travelId = UUID.randomUUID();
+                history travHis = new history(newTravel.toString(), curUser.getUid());
+                writeHistory(travelId, travHis);
 
                 for(Marker marker1: allRestaurantMarkers){marker1.remove();}
                 for(Marker marker: allParkingMarkers){marker.remove();}
@@ -1040,6 +1044,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             }
         });
+    }
+
+    public void writeHistory(UUID uuid, history newTravel) {
+        mDatabase.child("history").child(uuid.toString()).setValue(newTravel);
     }
 
     public void initializePolyLine(String url) throws IOException, JSONException{
