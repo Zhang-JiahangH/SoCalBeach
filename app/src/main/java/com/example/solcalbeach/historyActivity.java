@@ -7,6 +7,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -86,7 +87,7 @@ public class historyActivity extends AppCompatActivity {
 
         initView();
         initDistance();
-//        initReviews();
+        initReviews();
 
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -157,39 +158,39 @@ public class historyActivity extends AppCompatActivity {
     }
 
     // TODO:Implement Initialization of Views
-//    private void initReviews() {
-//        // retrieve data
-//        Log.e("init Reviews", curUser.getUid());
-//        Query res = mDatabase.child("reviews").orderByChild("userId").equalTo(curUser.getUid());
-//        Map<String, HashMap<String, String>>[] reviews = new Map[]{new HashMap<>()};
-//        res.get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()  {
-//            @Override
-//            public void onComplete(@NonNull Task<DataSnapshot> task) {
-//                if (!task.isSuccessful()) {
-//                    Log.e("firebase", "Error getting data", task.getException());
-//                }
-//                else {
-//                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
-//                    updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
-////                Log.e("result: ", task.getResult().getValue().toString());
-//                }
-//            }});
-//        Log.e("init Reviews", "end");
-//    }
-//
-//    private void updateList(Map<String, HashMap<String, String>> reviews) {
-//        if(reviews == null) {
-//            return;
-//        }
-//        ArrayList<Review> toBeHandle = new ArrayList<>();
-//        for(HashMap<String,String> review:reviews.values()) {
-//            Log.e("item: ", review.get("placeId"));
-//            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId")));
-//        }
-//        ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
+    private void initReviews() {
+        // retrieve data
+        Log.e("init Reviews", curUser.getUid());
+        Query res = mDatabase.child("history").orderByChild("userId").equalTo(curUser.getUid());
+        Map<String, HashMap<String, String>>[] histories = new Map[]{new HashMap<>()};
+        res.get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>()  {
+            @Override
+            public void onComplete(@NonNull Task<DataSnapshot> task) {
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.e("firebase", String.valueOf(task.getResult().getValue()));
+                    updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
+//                Log.e("result: ", task.getResult().getValue().toString());
+                }
+            }});
+        Log.e("init Reviews", "end");
+    }
+
+    private void updateList(Map<String, HashMap<String, String>> reviews) {
+        if(reviews == null) {
+            return;
+        }
+        ArrayList<String> toBeHandle = new ArrayList<>();
+        for(HashMap<String,String> review:reviews.values()) {
+            Log.e("history: ", review.get("travelInfo"));
+            toBeHandle.add(review.get("travelInfo"));
+        }
+        HistoryAdapter adapter = new HistoryAdapter(this, toBeHandle);
 //        adapter.notifyDataSetChanged();
-//        listView.setAdapter(adapter);
-//    }
+        listView.setAdapter(adapter);
+    }
 
 
     @Override

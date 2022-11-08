@@ -71,6 +71,10 @@
             android:label="ProfilePage">
         </activity>
 
+        <activity android:name=".historyActivity"
+            android:exported="true"
+            android:label="HistoryPage">
+        </activity>
     </application>
 
 </manifest>
