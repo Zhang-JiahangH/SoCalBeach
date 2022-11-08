@@ -223,6 +223,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        changeHeader();
                         if(item.getItemId() == R.id.nav_profile) {
                             Intent intent = new Intent();
                             intent.setClass(homeActivity.this,profileActivity.class);
@@ -286,7 +287,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     Log.e("firebase", "Error getting data", task.getException());
                 }
                 else {
-                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    Log.e("header - firebase", String.valueOf(task.getResult().getValue()));
                     updateHeaderText(String.valueOf(task.getResult().getValue()));
                 }
             }
@@ -503,7 +504,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         tvPopupName.setText(restaurant.getName());
         tvPopupAddress.setText(restaurant.getAddress());
         if (restaurant.getOpen()){
-        tvPopupOpenHours.setText("Open Now");}
+            tvPopupOpenHours.setText("Open Now");}
         else{
             tvPopupOpenHours.setText("Closed");
         }
@@ -748,94 +749,94 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void findRestaurant(Beach beach, double range) throws IOException, JSONException {
-         Log.i("triggered: ", "findRest");
+        Log.i("triggered: ", "findRest");
         if (curLocation == null) {
-                Log.e("Error", "current location is null in find nearby beaches.");
-            }
-            if (!isPermissionGranted) {
-                Log.e("Error", "permission not granted in find nearby beaches,");
-            }
-            Log.d("search starts", "starting searching nearby restaurants...");
+            Log.e("Error", "current location is null in find nearby beaches.");
+        }
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
+        }
+        Log.d("search starts", "starting searching nearby restaurants...");
 
 
-            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
-                    "location=" + beach.getLatitude() + "," + beach.getLongitude() +
-                    "&radius="+ range +
-                    "&types=restaurant" +
-                    "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                "location=" + beach.getLatitude() + "," + beach.getLongitude() +
+                "&radius="+ range +
+                "&types=restaurant" +
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
 
 
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        initializeRestaurantMarkers(url);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializeRestaurantMarkers(url);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            });
-            thread.start();
-            while(nearbyRestaurant==null){
-                double i = Math.log(309209387);
-                Log.i("bye ", "bye");
-
             }
-
-            // Put the found beaches as markers onto map and add them in hashmap.
-            for(Restaurant restaurant : nearbyRestaurant){
-                Marker curMarker = mMap.addMarker(new MarkerOptions()
-                        .position(restaurant.getLocation())
-                        .title(restaurant.getName())
-                        .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.food))));
-                allRestaurantMarkers.add(curMarker);
-            }
-
-
-            // Makes all markers clickable
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @Override
-                public boolean onMarkerClick(@NonNull Marker marker) {
-                    for(Restaurant restaurant : nearbyRestaurant){
-                        if(restaurant.getName().equals(marker.getTitle())) {
-                            createWindow(restaurant, marker);
-                            // Smoothly move the camera to the marker and display the popup window
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(restaurant.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                            if(polyline != null){
-                                polyline.remove();}
-                            try {
-                                displayWalk(restaurant, beach);
-                                //todo: store info
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                    for(Beach beach : nearbyBeaches){
-                        if(beach.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            curBeach = beach;
-                            createPopupWindow(beach, marker);
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(beach.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                        }
-                    }
-                    return false;
-                }
-            });
+        });
+        thread.start();
+        while(nearbyRestaurant==null){
+            double i = Math.log(309209387);
+            Log.i("bye ", "bye");
 
         }
+
+        // Put the found beaches as markers onto map and add them in hashmap.
+        for(Restaurant restaurant : nearbyRestaurant){
+            Marker curMarker = mMap.addMarker(new MarkerOptions()
+                    .position(restaurant.getLocation())
+                    .title(restaurant.getName())
+                    .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.food))));
+            allRestaurantMarkers.add(curMarker);
+        }
+
+
+        // Makes all markers clickable
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                for(Restaurant restaurant : nearbyRestaurant){
+                    if(restaurant.getName().equals(marker.getTitle())) {
+                        createWindow(restaurant, marker);
+                        // Smoothly move the camera to the marker and display the popup window
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(restaurant.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                        if(polyline != null){
+                            polyline.remove();}
+                        try {
+                            displayWalk(restaurant, beach);
+                            //todo: store info
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                for(Beach beach : nearbyBeaches){
+                    if(beach.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        curBeach = beach;
+                        createPopupWindow(beach, marker);
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(beach.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                    }
+                }
+                return false;
+            }
+        });
+
+    }
 
     public void initializeRestaurantMarkers(String url) throws IOException, JSONException {
         nearbyRestaurant = new ArrayList<>();
@@ -927,47 +928,47 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             allParkingMarkers.add(curMarker);
         }
 
-                    // Makes all markers clickable
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @SuppressLint("PotentialBehaviorOverride")
-                @Override
-                public boolean onMarkerClick(@NonNull Marker marker) {
-                    for(Parking parking : nearbyLots){
-                        if(parking.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(parking.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                            if(polyline != null){
-                                polyline.remove();}
-                            try {
-                                displayRoute(parking,beach);
-                                ETA.setVisibility(View.VISIBLE);
-                                ETA.setText("ETA: " + estimate);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+        // Makes all markers clickable
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @SuppressLint("PotentialBehaviorOverride")
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                for(Parking parking : nearbyLots){
+                    if(parking.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(parking.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                        if(polyline != null){
+                            polyline.remove();}
+                        try {
+                            displayRoute(parking,beach);
+                            ETA.setVisibility(View.VISIBLE);
+                            ETA.setText("ETA: " + estimate);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                    for(Beach beach : nearbyBeaches){
-                        if(beach.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            curBeach = beach;
-                            createPopupWindow(beach, marker);
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(beach.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                        }
-                    }
-                    return false;
                 }
-            });
+                for(Beach beach : nearbyBeaches){
+                    if(beach.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        curBeach = beach;
+                        createPopupWindow(beach, marker);
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(beach.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                    }
+                }
+                return false;
+            }
+        });
 
     }
 

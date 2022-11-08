@@ -3,6 +3,7 @@ package com.example.solcalbeach;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
@@ -68,8 +69,8 @@ public class userSignUp extends AppCompatActivity {
     }
 
     /*
-    *  input is the user's input email address
-    *  return whether the user's input is a valid email address.
+     *  input is the user's input email address
+     *  return whether the user's input is a valid email address.
      */
     public boolean isValidEmail(CharSequence email){
         return (!TextUtils.isEmpty(email) && Patterns.EMAIL_ADDRESS.matcher(email).matches());
@@ -80,10 +81,13 @@ public class userSignUp extends AppCompatActivity {
     input is user's new pwd
     check if the pwd is strong enough.
      */
-    public boolean isValidPwd(CharSequence pwd){
-        boolean toRet = pwd.length() >= 8;
-        // check if length is greater than 8
-        return toRet;
+    public boolean isValidPwd(String pwd){
+        Log.e("pwd: ", pwd);
+        Log.e("length: ", String.valueOf(pwd.length()));
+        if(pwd.length() >= 8) {
+            return true;
+        }
+        else return false;
     }
 
     /*
@@ -95,7 +99,7 @@ public class userSignUp extends AppCompatActivity {
         String name = ((EditText)findViewById(R.id.et_name)).getText().toString();
         String email = ((EditText)findViewById(R.id.et_email)).getText().toString();
         String password = ((EditText)findViewById(R.id.et_password)).getText().toString();
-        String rePassword = ((EditText)findViewById(R.id.et_repassword)).toString();
+        String rePassword = ((EditText)findViewById(R.id.et_repassword)).getText().toString();
         userRegisterHelper newUser = new userRegisterHelper(name,email,password);
 
         // Checking if input fields are valid
@@ -107,7 +111,8 @@ public class userSignUp extends AppCompatActivity {
             failedRegister("Two passwords not the same. Try again.");
             return;
         }
-        if(isValidPwd(password)){
+        if(!isValidPwd(password)){
+            Log.e("length problem: ", password);
             failedRegister("Password too short, try a longer one.");
             return;
         }
