@@ -8,13 +8,21 @@ plugins {
     id 'com.android.library' version '7.2.2' apply false
     id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '2.0.1' apply false
     id "jacoco"
-    id "org.sonarqube" version "3.3"
+    id "org.sonarqube" version "3.5.0.2730"
 }
 
 jacocoTestReport {
     reports {
         xml.enabled true
     }
+}
+
+sonarqube {
+  properties {
+    property "sonar.projectKey", "Zhang-JiahangH_SoCalBeach"
+    property "sonar.organization", "zhang-jiahangh"
+    property "sonar.host.url", "https://sonarcloud.io"
+  }
 }
 
 task clean(type: Delete) {
