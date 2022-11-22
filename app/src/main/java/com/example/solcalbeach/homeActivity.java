@@ -116,7 +116,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     boolean isPermissionGranted;
     private GoogleMap mMap;
-    private final LatLng defaultLocation = new LatLng(-33.8523341, 151.2106085);
+    private final LatLng defaultLocation = new LatLng(37.4215, 122.0841);
     private static final int DEFAULT_ZOOM = 15;
 
     //    Location currentLocation;
@@ -271,6 +271,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     }
 
+
+
     private void restartApp() {
         Intent intent = new Intent(getApplicationContext(), userSignIn.class);
         int mPendingIntentId = 12345;
@@ -383,9 +385,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             };
                         }
                     }
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                            new LatLng(curLocation.getLatitude(),
-                                    curLocation.getLongitude()), DEFAULT_ZOOM));
+
 
                     // Enable the blue dot for user location
                     mMap.setMyLocationEnabled(true);
@@ -443,7 +443,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             Marker curMarker = mMap.addMarker(new MarkerOptions()
                     .position(beach.getLocation())
                     .title(beach.getName())
+                    .snippet(beach.getName())
                     .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.beach))));
+
+
             allBeachMarkers.add(curMarker);
         }
 
