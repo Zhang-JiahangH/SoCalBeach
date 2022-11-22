@@ -422,7 +422,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void run() {
                 try {
-                    initializeBeachMarkers(url);
+                    nearbyBeaches = initializeBeachMarkers(url);
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (JSONException e) {
@@ -472,8 +472,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
 
 
-    public void initializeBeachMarkers(String url) throws IOException, JSONException {
-        nearbyBeaches = new ArrayList<>();
+    public static List<Beach> initializeBeachMarkers(String url) throws IOException, JSONException {
+        List<Beach> nearbyBeaches = new ArrayList<>();
         DownloadUrl downloadUrl = new DownloadUrl();
         String nearby_places_data;
         nearby_places_data = downloadUrl.retrieve_url(url);
@@ -485,8 +485,8 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             JSONObject jsonObject1 = jsonArray.getJSONObject(i);
 
             JSONObject getLocation = jsonObject1.getJSONObject("geometry").getJSONObject("location");
-            String lat = getLocation.getString("lat");
-            String lng = getLocation.getString("lng");
+            Double lat = getLocation.getDouble("lat");
+            Double lng = getLocation.getDouble("lng");
 
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
@@ -499,11 +499,11 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             int user_ratings_total = 0;
 
-            LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
-            upDateRating();
-            nearbyBeaches.add(curBeach);
+            LatLng latLng = new LatLng(lat, lng);
+            Log.e("LatLng:", name + " "  + latLng.toString());
+            nearbyBeaches.add(new Beach(name,latLng,rating,placeId,user_ratings_total));
         }
+        return nearbyBeaches;
     }
     @SuppressLint({"SetTextI18n", "MissingInflatedId"})
     public void createWindow(Restaurant restaurant, Marker marker){
@@ -728,14 +728,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString());
                 }
                 // TODO: change the layout, record the rating into current beach and current user profile.
-                writeReview(reviewId, newReview);
+                writeReview(reviewId, newReview, mDatabase);
                 upDateRating();
                 dialog.show();
             }
         });
     }
 
-    public void writeReview(UUID uuid, Review review) {
+    public void writeReview(UUID uuid, Review review, DatabaseReference mDatabase) {
         mDatabase.child("reviews").child(uuid.toString()).setValue(review);
     }
 
@@ -755,7 +755,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     curBeach.setUser_ratings_total(0);
                     for(HashMap<String,String> review:reviews.values()) {
                         Log.e("placeId", review.get("placeId"));
-                        changeRatingInfo(Double.parseDouble(review.get("rating")));
+                        Beach [] currentB = new Beach[1];
+                        currentB[0] = curBeach;
+                        changeRatingInfo(currentB, Double.parseDouble(review.get("rating")));
                     }
                 }
             }
@@ -763,9 +765,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         Log.e("update rating:", "end");
     }
 
-    public void changeRatingInfo(double rates) {
-        curBeach.setRating((curBeach.getRating() * curBeach.getUser_ratings_total() + rates) / (curBeach.getUser_ratings_total() + 1));
-        curBeach.setUser_ratings_total(curBeach.getUser_ratings_total() + 1);
+    public static void changeRatingInfo(Beach[] currentB, double rates) {
+        currentB[0].setRating((currentB[0].getRating() * currentB[0].getUser_ratings_total() + rates) / (currentB[0].getUser_ratings_total() + 1));
+        currentB[0].setUser_ratings_total(currentB[0].getUser_ratings_total() + 1);
     }
 
 

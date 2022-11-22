@@ -85,28 +85,6 @@ public class userSignUp extends AppCompatActivity {
     }
 
     /*
-     *  input is the user's input email address
-     *  return whether the user's input is a valid email address.
-     */
-    public boolean isValidEmail(CharSequence email){
-        return (!TextUtils.isEmpty(email) && Patterns.EMAIL_ADDRESS.matcher(email).matches());
-    }
-
-
-    /*
-    input is user's new pwd
-    check if the pwd is strong enough.
-     */
-    public boolean isValidPwd(String pwd){
-        Log.e("pwd: ", pwd);
-        Log.e("length: ", String.valueOf(pwd.length()));
-        if(pwd.length() >= 8) {
-            return true;
-        }
-        else return false;
-    }
-
-    /*
     do the registration operation, including:
         check input field
         control data flow for success/fail sign up
@@ -119,15 +97,15 @@ public class userSignUp extends AppCompatActivity {
         userRegisterHelper newUser = new userRegisterHelper(name,email,password);
 
         // Checking if input fields are valid
-        if(!isValidEmail(email)){
+        if(!newUser.isValidEmail()){
             failedRegister("Invalid email address. Try again");
             return;
         }
-        if(!rePassword.equals(password)){
+        if(newUser.isValidConfirm(rePassword)){
             failedRegister("Two passwords not the same. Try again.");
             return;
         }
-        if(!isValidPwd(password)){
+        if(!newUser.isValidPwd()){
             Log.e("length problem: ", password);
             failedRegister("Password too short, try a longer one.");
             return;
@@ -160,6 +138,7 @@ public class userSignUp extends AppCompatActivity {
                                         final Map<String, Object> users = new HashMap<String, Object>();
                                         users.put(mAuth.getCurrentUser().getUid(),newUser);
                                         usersRef.updateChildren(users);
+                                        Log.e("user info:", users.toString());
                                     }
                                 });
                                 finishRegister();

@@ -183,25 +183,28 @@ public class profileActivity extends AppCompatActivity{
             }
             else {
                 Log.d("firebase", String.valueOf(task.getResult().getValue()));
-                updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
-//                Log.e("result: ", task.getResult().getValue().toString());
+                ArrayList<Review> toBeHandle = updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
+                Log.e("result: ", task.getResult().getValue().toString());
+                if(toBeHandle != null) {
+                    ReviewAdapter adapter = new ReviewAdapter(profileActivity.this, toBeHandle);
+                    adapter.notifyDataSetChanged();
+                    listView.setAdapter(adapter);
+                }
             }
         }});
         Log.e("init Reviews", "end");
     }
 
-    private void updateList(Map<String, HashMap<String, String>> reviews) {
+    static public ArrayList<Review> updateList(Map<String, HashMap<String, String>> reviews) {
         if(reviews == null) {
-            return;
+            return null;
         }
         ArrayList<Review> toBeHandle = new ArrayList<>();
         for(HashMap<String,String> review:reviews.values()) {
             Log.e("item: ", review.get("placeId"));
             toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId")));
         }
-        ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
-        adapter.notifyDataSetChanged();
-        listView.setAdapter(adapter);
+        return toBeHandle;
     }
 
 
