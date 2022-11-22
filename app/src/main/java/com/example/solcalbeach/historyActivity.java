@@ -171,25 +171,27 @@ public class historyActivity extends AppCompatActivity {
                 }
                 else {
                     Log.e("firebase", String.valueOf(task.getResult().getValue()));
-                    updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
-//                Log.e("result: ", task.getResult().getValue().toString());
+                    ArrayList<String> toBeHandle = updateList((HashMap<String, HashMap<String,String>>)task.getResult().getValue());
+                    Log.e("result: ", task.getResult().getValue().toString());
+                    HistoryAdapter adapter = new HistoryAdapter(historyActivity.this, toBeHandle);
+//        adapter.notifyDataSetChanged();
+                    listView.setAdapter(adapter);
                 }
             }});
         Log.e("init Reviews", "end");
     }
 
-    private void updateList(Map<String, HashMap<String, String>> reviews) {
+    static ArrayList<String> updateList(Map<String, HashMap<String, String>> reviews) {
         if(reviews == null) {
-            return;
+            return null;
         }
         ArrayList<String> toBeHandle = new ArrayList<>();
         for(HashMap<String,String> review:reviews.values()) {
             Log.e("history: ", review.get("travelInfo"));
             toBeHandle.add(review.get("travelInfo"));
         }
-        HistoryAdapter adapter = new HistoryAdapter(this, toBeHandle);
-//        adapter.notifyDataSetChanged();
-        listView.setAdapter(adapter);
+        return toBeHandle;
+
     }
 
 

@@ -76,6 +76,12 @@ public class userSignIn extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private void report_error() {
+        getIntent().putExtra("error","Invalid email or password. Try again");
+        finish();
+        startActivity(getIntent());
+    }
+
     private void signInHelper(String email, String pwd){
         mAuth.signInWithEmailAndPassword(email,pwd).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
             @Override
@@ -86,9 +92,7 @@ public class userSignIn extends AppCompatActivity {
                     to_main();
                 }else{
                     // if log in failed, reload this page and display the error message
-                    getIntent().putExtra("error","Invalid email or password. Try again");
-                    finish();
-                    startActivity(getIntent());
+                    report_error();
                 }
             }
         });

@@ -14,7 +14,7 @@ android {
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -29,6 +29,9 @@ android {
     }
     buildFeatures {
         viewBinding true
+    }
+    testOptions {
+        unitTests.returnDefaultValues = true
     }
 }
 
@@ -53,10 +56,9 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.5.3'
     implementation "androidx.work:work-runtime:2.7.1"
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20180813'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4-rc01'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0-rc01'
     androidTestImplementation 'androidx.test:rules:1.4.1-alpha05'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.2.0'
-
-
 }
