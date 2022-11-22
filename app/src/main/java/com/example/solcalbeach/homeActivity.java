@@ -385,7 +385,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             };
                         }
                     }
-
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                            new LatLng(curLocation.getLatitude(),
+                                    curLocation.getLongitude()), DEFAULT_ZOOM));
 
                     // Enable the blue dot for user location
                     mMap.setMyLocationEnabled(true);
