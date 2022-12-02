@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -16,8 +17,12 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationRequest;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -74,6 +79,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
@@ -86,12 +92,16 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
@@ -150,7 +160,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute, btnSelectImages;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
     EditText commentArea;
@@ -165,6 +175,35 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     // formating
     NumberFormat nf;
+
+    String path;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        //在相册里面选择好相片之后调回到现在的这个activity中
+        switch (requestCode) {
+            case 200://这里的requestCode是我自己设置的，就是确定返回到那个Activity的标志
+                if (resultCode == RESULT_OK) {//resultcode是setResult里面设置的code值
+                    try {
+                        Uri selectedImage = data.getData(); //获取系统返回的照片的Uri
+                        String[] filePathColumn = {MediaStore.Images.Media.DATA};
+                        Cursor cursor = getContentResolver().query(selectedImage,
+                                filePathColumn, null, null, null);//从系统表中查询指定Uri对应的照片
+                        cursor.moveToFirst();
+                        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                        path = cursor.getString(columnIndex);  //获取照片路径
+                        cursor.close();
+                        btnSelectImages.setText(path);
+                        Log.e("path: ", path);
+                    } catch (Exception e) {
+                        // TODO Auto-generatedcatch block
+                        e.printStackTrace();
+                    }
+                }
+                break;
+        }
+    }
 
 
     @SuppressLint("MissingInflatedId")
@@ -221,6 +260,14 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.black));
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
+
+        if (Build.VERSION.SDK_INT >= 30){
+            if (!Environment.isExternalStorageManager()){
+                Intent getpermission = new Intent();
+                getpermission.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivity(getpermission);
+            }
+        }
 
         // Initialize clickable items in the menu
         navigationView.setNavigationItemSelectedListener(
@@ -564,7 +611,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         ratingBar = (RatingBar) beachPopupView.findViewById(R.id.rating);
         btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
         commentArea = (EditText)beachPopupView.findViewById(R.id.comments);
+        btnSelectImages = (Button) beachPopupView.findViewById(R.id.btn_select_image);
 
+        btnSelectImages.setText("SELECT IMAGES");
         tvPopupName.setText(beach.getName());
         upDateRating();
         Log.e("rating: ", String.valueOf(beach.getRating()));
@@ -721,6 +770,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                boolean[] once = {true};
                 Float rating = ratingBar.getRating();
                 Review newReview;
                 UUID reviewId = UUID.randomUUID();
@@ -731,10 +781,71 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 else {
                     newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString(), commentText);
                 }
+
+
+                if(path != "") {
+                    Uri file = Uri.fromFile(new File(path));
+                    FirebaseStorage storage = FirebaseStorage.getInstance();
+                    StorageReference storageRef = storage.getReference();
+                    StorageReference riversRef = storageRef.child("images/"+file.getLastPathSegment());
+                    UploadTask uploadTask = riversRef.putFile(file);
+
+                    // Register observers to listen for when the download is done or if it fails
+                    uploadTask.addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Handle unsuccessful uploads
+                            Log.e("error", "unable to upload");
+                        }
+                    }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+                            // ...
+                            Task<Uri>  link = riversRef.getDownloadUrl();
+                            link.addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Uri> task) {
+                                    if (task.isSuccessful()) {
+                                        Uri downloadUri = task.getResult();
+                                        Log.e("url", downloadUri.toString());
+                                        newReview.setImageUrl(downloadUri.toString());
+                                        if(once[0]) {
+                                            writeReview(reviewId, newReview);
+                                            upDateRating();
+                                            dialog.show();
+                                            once[0] = false;
+                                        }
+
+                                    } else {
+                                        Log.e("error", "upload failed");
+                                    }
+                                }
+                            });
+//                        Log.e("url", link.toString());
+//                        writeReview(reviewId, newReview);
+//                        upDateRating();
+//                        dialog.show();
+                        }
+                    });
+                }
+                else {
+                    writeReview(reviewId, newReview);
+                    upDateRating();
+                    dialog.show();
+                }
                 // TODO: change the layout, record the rating into current beach and current user profile.
-                writeReview(reviewId, newReview);
-                upDateRating();
-                dialog.show();
+
+            }
+        });
+
+        btnSelectImages.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(
+                        Intent.ACTION_PICK,
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(intent, 200);
             }
         });
     }

@@ -7,6 +7,7 @@ public class Review {
     private String beachName;
     private String reviewId;
     private String comments;
+    private String imageUrl;
 
     public Review(String rating, String userId, String placeId, String beachName, String reviewId, String comments) {
         this.rating = rating;
@@ -15,6 +16,17 @@ public class Review {
         this.beachName = beachName;
         this.reviewId = reviewId;
         this.comments = comments;
+        this.imageUrl = "";
+    }
+
+    public Review(String rating, String userId, String placeId, String beachName, String reviewId, String comments, String imageUrl) {
+        this.rating = rating;
+        this.placeId = placeId;
+        this.userId = userId;
+        this.beachName = beachName;
+        this.reviewId = reviewId;
+        this.comments = comments;
+        this.imageUrl = imageUrl;
     }
 
     public String getRating() {
@@ -63,5 +75,13 @@ public class Review {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
