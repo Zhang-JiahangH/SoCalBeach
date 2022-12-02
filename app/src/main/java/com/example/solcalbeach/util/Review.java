@@ -6,13 +6,15 @@ public class Review {
     private String placeId;
     private String beachName;
     private String reviewId;
+    private String comments;
 
-    public Review(String rating, String userId, String placeId, String beachName, String reviewId) {
+    public Review(String rating, String userId, String placeId, String beachName, String reviewId, String comments) {
         this.rating = rating;
         this.placeId = placeId;
         this.userId = userId;
         this.beachName = beachName;
         this.reviewId = reviewId;
+        this.comments = comments;
     }
 
     public String getRating() {
@@ -53,5 +55,13 @@ public class Review {
 
     public void setReviewId(String reviewId) {
         this.reviewId = reviewId;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
     }
 }

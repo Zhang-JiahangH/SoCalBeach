@@ -43,10 +43,12 @@ public class ReviewAdapter extends ArrayAdapter<Review> {
         // Lookup view for data population
         TextView tvName = (TextView) convertView.findViewById(R.id.tvBeach);
         TextView tvHome = (TextView) convertView.findViewById(R.id.tvRating);
+        TextView tvComments = (TextView) convertView.findViewById(R.id.tvComments);
         Button deletBut = (Button) convertView.findViewById(R.id.delete_button);
         // Populate the data into the template view using the data object
         tvName.setText(review.getBeachName());
         tvHome.setText(review.getRating());
+        tvComments.setText(review.getComments());
         deletBut.setTag(review.getReviewId());
         deletBut.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {

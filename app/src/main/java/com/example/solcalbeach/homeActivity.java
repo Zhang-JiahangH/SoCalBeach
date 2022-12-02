@@ -25,6 +25,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.widget.RatingBar;
@@ -152,6 +153,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
+    EditText commentArea;
 
     // review needed
     Beach curBeach;
@@ -561,6 +563,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         cbAnonymous = (CheckBox) beachPopupView.findViewById(R.id.cb_beach_popup_anonymous);
         ratingBar = (RatingBar) beachPopupView.findViewById(R.id.rating);
         btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
+        commentArea = (EditText)beachPopupView.findViewById(R.id.comments);
 
         tvPopupName.setText(beach.getName());
         upDateRating();
@@ -721,11 +724,12 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 Float rating = ratingBar.getRating();
                 Review newReview;
                 UUID reviewId = UUID.randomUUID();
+                String commentText = commentArea.getText().toString();
                 if(cbAnonymous.isChecked()) {
-                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName(), reviewId.toString());
+                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName(), reviewId.toString(), commentText);
                 }
                 else {
-                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString());
+                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString(), commentText);
                 }
                 // TODO: change the layout, record the rating into current beach and current user profile.
                 writeReview(reviewId, newReview);
