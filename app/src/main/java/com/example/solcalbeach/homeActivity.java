@@ -555,7 +555,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             int user_ratings_total = 0;
 
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
+            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total, address);
             upDateRating();
             nearbyBeaches.add(curBeach);
         }
@@ -767,7 +767,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                         btnRange3000.setOnClickListener(null);
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                 beach.getLocation(), 10));
-                        nearbyRestaurant.removeAll(nearbyRestaurant);
+                        if(nearbyRestaurant != null) {
+                            nearbyRestaurant.removeAll(nearbyRestaurant);
+                        }
                         endRoute.setVisibility(View.INVISIBLE);
                         endRoute.setVisibility(View.INVISIBLE);
                         if(polyline != null){
