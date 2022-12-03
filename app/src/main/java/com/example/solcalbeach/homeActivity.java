@@ -20,6 +20,8 @@ import android.location.LocationRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -160,7 +162,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute, btnSelectImages;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute, tvPopUpOpenHours, btnSelectImages;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
     EditText commentArea;
@@ -539,9 +541,13 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
+            
+            JSONObject getAdd = jsonArray.getJSONObject(i);
+            String address = getAdd.getString("formatted_address");
 
-//            JSONObject getRating = jsonArray.getJSONObject(i);
+//          JSONObject getRating = jsonArray.getJSONObject(i);
             double rating = 0.0;
+
 
             JSONObject getPlaceId = jsonArray.getJSONObject(i);
             String placeId = getPlaceId.getString("place_id");
@@ -566,6 +572,12 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         TextView tvPopupAddress = (TextView) restaurantPopupView.findViewById(R.id.restaurant_address);
         TextView tvPopupOpenHours = (TextView) restaurantPopupView.findViewById(R.id.open);
         TextView tvPopupRating = (TextView) restaurantPopupView.findViewById(R.id.rating);
+        TextView tvPopupMenu = (TextView) restaurantPopupView.findViewById(R.id.menu);
+
+        tvPopupMenu.setClickable(true);
+        tvPopupMenu.setMovementMethod(LinkMovementMethod.getInstance());
+        String text = "<a href='http://www.google.com'> Menu </a>";
+        tvPopupMenu.setText(Html.fromHtml(text));
 
 
         tvPopupName.setText(restaurant.getName());
@@ -610,9 +622,12 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         cbAnonymous = (CheckBox) beachPopupView.findViewById(R.id.cb_beach_popup_anonymous);
         ratingBar = (RatingBar) beachPopupView.findViewById(R.id.rating);
         btnSubmit = (Button) beachPopupView.findViewById(R.id.btn_beach_popup_submitRating);
+        TextView tvPopupOpenHours = (TextView) beachPopupView.findViewById(R.id.tv_beach_popup_openhour);
+        TextView address = (TextView) beachPopupView.findViewById(R.id.tv_beach_popup_address);
+        address.setText(beach.getAddress());
+        tvPopupOpenHours.setText("Open now");
         commentArea = (EditText)beachPopupView.findViewById(R.id.comments);
         btnSelectImages = (Button) beachPopupView.findViewById(R.id.btn_select_image);
-
         btnSelectImages.setText("SELECT IMAGES");
         tvPopupName.setText(beach.getName());
         upDateRating();
