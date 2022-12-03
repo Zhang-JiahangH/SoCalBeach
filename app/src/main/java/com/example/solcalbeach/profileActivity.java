@@ -197,7 +197,7 @@ public class profileActivity extends AppCompatActivity{
         ArrayList<Review> toBeHandle = new ArrayList<>();
         for(HashMap<String,String> review:reviews.values()) {
             Log.e("item: ", review.get("placeId"));
-            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId")));
+            toBeHandle.add(new Review(review.get("rating"), review.get("userId"), review.get("placeId"), review.get("beachName"), review.get("reviewId"), review.get("comments"), review.get("imageUrl")));
         }
         ReviewAdapter adapter = new ReviewAdapter(this, toBeHandle);
         adapter.notifyDataSetChanged();

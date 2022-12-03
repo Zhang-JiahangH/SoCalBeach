@@ -2,11 +2,14 @@ package com.example.solcalbeach;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -14,10 +17,14 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationRequest;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -25,6 +32,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.widget.RatingBar;
@@ -73,6 +81,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
@@ -85,12 +94,16 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
@@ -149,9 +162,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     PopupWindow popupWindow;
     TextView tvPopupName, tvPopupRating;
     ImageButton btnPopupBack;
-    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute, tvPopUpOpenHours;
+    Button btnDirection, btnRestaurant, btnSubmit, btnHomeBack, btnRange1000, btnRange2000, btnRange3000, ETA, endRoute, tvPopUpOpenHours, btnSelectImages;
     CheckBox cbAnonymous;
     RatingBar ratingBar;
+    EditText commentArea;
 
     // review needed
     Beach curBeach;
@@ -164,13 +178,42 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
     // formating
     NumberFormat nf;
 
+    String path;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        //在相册里面选择好相片之后调回到现在的这个activity中
+        switch (requestCode) {
+            case 200://这里的requestCode是我自己设置的，就是确定返回到那个Activity的标志
+                if (resultCode == RESULT_OK) {//resultcode是setResult里面设置的code值
+                    try {
+                        Uri selectedImage = data.getData(); //获取系统返回的照片的Uri
+                        String[] filePathColumn = {MediaStore.Images.Media.DATA};
+                        Cursor cursor = getContentResolver().query(selectedImage,
+                                filePathColumn, null, null, null);//从系统表中查询指定Uri对应的照片
+                        cursor.moveToFirst();
+                        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                        path = cursor.getString(columnIndex);  //获取照片路径
+                        cursor.close();
+                        btnSelectImages.setText(path);
+                        Log.e("path: ", path);
+                    } catch (Exception e) {
+                        // TODO Auto-generatedcatch block
+                        e.printStackTrace();
+                    }
+                }
+                break;
+        }
+    }
+
 
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        Log.e("homeActivity: ", "create");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home);
-
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
@@ -220,11 +263,20 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
+        if (Build.VERSION.SDK_INT >= 30){
+            if (!Environment.isExternalStorageManager()){
+                Intent getpermission = new Intent();
+                getpermission.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivity(getpermission);
+            }
+        }
+
         // Initialize clickable items in the menu
         navigationView.setNavigationItemSelectedListener(
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        changeHeader();
                         if(item.getItemId() == R.id.nav_profile) {
                             Intent intent = new Intent();
                             intent.setClass(homeActivity.this,profileActivity.class);
@@ -235,6 +287,10 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                             intent.setClass(homeActivity.this,historyActivity.class);
                             startActivity(intent);
                         }
+                        else if(item.getItemId() == R.id.nav_Log_out) {
+                            FirebaseAuth.getInstance().signOut();
+                            restartApp();
+                        }
                         return false;
                     }
                 }
@@ -244,8 +300,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         getCurrentLocation();
         if (isPermissionGranted) {
+            Log.e("seems like a creation", "of map");
             SupportMapFragment supportMapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.home_map_view);
-            supportMapFragment.getMapAsync(this);
+            supportMapFragment.getMapAsync(homeActivity.this);
         }
 
         // Initialize dialog
@@ -263,6 +320,15 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         navigationView.bringToFront();
         toolbar.bringToFront();
 
+    }
+
+    private void restartApp() {
+        Intent intent = new Intent(getApplicationContext(), userSignIn.class);
+        int mPendingIntentId = 12345;
+        PendingIntent mPendingIntent = PendingIntent.getActivity(getApplicationContext(), mPendingIntentId, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager mgr = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+        mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+        System.exit(0);
     }
 
     public void changeHeader() {
@@ -288,7 +354,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                     Log.e("firebase", "Error getting data", task.getException());
                 }
                 else {
-                    Log.d("firebase", String.valueOf(task.getResult().getValue()));
+                    Log.e("header - firebase", String.valueOf(task.getResult().getValue()));
                     updateHeaderText(String.valueOf(task.getResult().getValue()));
                 }
             }
@@ -310,6 +376,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.e("creation of map", " done");
         mMap = googleMap;
 
         //customize the styling of the base map
@@ -474,21 +541,22 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
             JSONObject getName = jsonArray.getJSONObject(i);
             String name = getName.getString("name");
-
+            
             JSONObject getAdd = jsonArray.getJSONObject(i);
             String address = getAdd.getString("formatted_address");
 
-            JSONObject getRating = jsonArray.getJSONObject(i);
-            double rating = Double.parseDouble(getRating.getString("rating"));
+//          JSONObject getRating = jsonArray.getJSONObject(i);
+            double rating = 0.0;
+
 
             JSONObject getPlaceId = jsonArray.getJSONObject(i);
             String placeId = getPlaceId.getString("place_id");
 
-
-            int user_ratings_total = Integer.parseInt(getRating.getString("user_ratings_total"));
+            int user_ratings_total = 0;
 
             LatLng latLng = new LatLng(Double.parseDouble(lat), Double.parseDouble(lng));
-            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total, address);
+            curBeach = new Beach(name,latLng,rating,placeId,user_ratings_total);
+            upDateRating();
             nearbyBeaches.add(curBeach);
         }
     }
@@ -515,7 +583,7 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         tvPopupName.setText(restaurant.getName());
         tvPopupAddress.setText(restaurant.getAddress());
         if (restaurant.getOpen()){
-        tvPopupOpenHours.setText("Open Now");}
+            tvPopupOpenHours.setText("Open Now");}
         else{
             tvPopupOpenHours.setText("Closed");
         }
@@ -558,10 +626,13 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         TextView address = (TextView) beachPopupView.findViewById(R.id.tv_beach_popup_address);
         address.setText(beach.getAddress());
         tvPopupOpenHours.setText("Open now");
+        commentArea = (EditText)beachPopupView.findViewById(R.id.comments);
+        btnSelectImages = (Button) beachPopupView.findViewById(R.id.btn_select_image);
+        btnSelectImages.setText("SELECT IMAGES");
         tvPopupName.setText(beach.getName());
         upDateRating();
         Log.e("rating: ", String.valueOf(beach.getRating()));
-        tvPopupRating.setText("rating: "+ nf.format(beach.getRating())+" out of 5");
+        tvPopupRating.setText("rating: "+ nf.format(beach.getRating())+" out of 5 by " + String.valueOf(beach.getUser_ratings_total()) + " people");
 
         popupWindow.showAtLocation(findViewById(R.id.home_map_view), Gravity.CENTER,0,0);
 
@@ -714,19 +785,82 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                boolean[] once = {true};
                 Float rating = ratingBar.getRating();
                 Review newReview;
                 UUID reviewId = UUID.randomUUID();
+                String commentText = commentArea.getText().toString();
                 if(cbAnonymous.isChecked()) {
-                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName(), reviewId.toString());
+                    newReview = new Review(String.valueOf(rating), "", beach.getPlaceId(), beach.getName(), reviewId.toString(), commentText);
                 }
                 else {
-                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString());
+                    newReview = new Review(String.valueOf(rating), curUser.getUid(), beach.getPlaceId(), beach.getName(), reviewId.toString(), commentText);
+                }
+
+
+                if(path != "") {
+                    Uri file = Uri.fromFile(new File(path));
+                    FirebaseStorage storage = FirebaseStorage.getInstance();
+                    StorageReference storageRef = storage.getReference();
+                    StorageReference riversRef = storageRef.child("images/"+file.getLastPathSegment());
+                    UploadTask uploadTask = riversRef.putFile(file);
+
+                    // Register observers to listen for when the download is done or if it fails
+                    uploadTask.addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Handle unsuccessful uploads
+                            Log.e("error", "unable to upload");
+                        }
+                    }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+                            // ...
+                            Task<Uri>  link = riversRef.getDownloadUrl();
+                            link.addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Uri> task) {
+                                    if (task.isSuccessful()) {
+                                        Uri downloadUri = task.getResult();
+                                        Log.e("url", downloadUri.toString());
+                                        newReview.setImageUrl(downloadUri.toString());
+                                        if(once[0]) {
+                                            writeReview(reviewId, newReview);
+                                            upDateRating();
+                                            dialog.show();
+                                            once[0] = false;
+                                        }
+
+                                    } else {
+                                        Log.e("error", "upload failed");
+                                    }
+                                }
+                            });
+//                        Log.e("url", link.toString());
+//                        writeReview(reviewId, newReview);
+//                        upDateRating();
+//                        dialog.show();
+                        }
+                    });
+                }
+                else {
+                    writeReview(reviewId, newReview);
+                    upDateRating();
+                    dialog.show();
                 }
                 // TODO: change the layout, record the rating into current beach and current user profile.
-                writeReview(reviewId, newReview);
-                upDateRating();
-                dialog.show();
+
+            }
+        });
+
+        btnSelectImages.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(
+                        Intent.ACTION_PICK,
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(intent, 200);
             }
         });
     }
@@ -746,6 +880,9 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
                 Log.e("firebase", String.valueOf(task.getResult().getValue()));
                 Map<String, HashMap<String,String>> reviews = (HashMap<String, HashMap<String,String>>)task.getResult().getValue();
                 if(reviews != null) {
+                    // recalculate
+                    curBeach.setRating(0.0);
+                    curBeach.setUser_ratings_total(0);
                     for(HashMap<String,String> review:reviews.values()) {
                         Log.e("placeId", review.get("placeId"));
                         changeRatingInfo(Double.parseDouble(review.get("rating")));
@@ -763,94 +900,94 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
 
 
     public void findRestaurant(Beach beach, double range) throws IOException, JSONException {
-         Log.i("triggered: ", "findRest");
+        Log.i("triggered: ", "findRest");
         if (curLocation == null) {
-                Log.e("Error", "current location is null in find nearby beaches.");
-            }
-            if (!isPermissionGranted) {
-                Log.e("Error", "permission not granted in find nearby beaches,");
-            }
-            Log.d("search starts", "starting searching nearby restaurants...");
+            Log.e("Error", "current location is null in find nearby beaches.");
+        }
+        if (!isPermissionGranted) {
+            Log.e("Error", "permission not granted in find nearby beaches,");
+        }
+        Log.d("search starts", "starting searching nearby restaurants...");
 
 
-            String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
-                    "location=" + beach.getLatitude() + "," + beach.getLongitude() +
-                    "&radius="+ range +
-                    "&types=restaurant" +
-                    "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
+        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                "location=" + beach.getLatitude() + "," + beach.getLongitude() +
+                "&radius="+ range +
+                "&types=restaurant" +
+                "&key=AIzaSyBNF_W_dJPHr-HGw3YtFCbfMoUcvKdBlSg";
 
 
-            Thread thread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        initializeRestaurantMarkers(url);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    initializeRestaurantMarkers(url);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            });
-            thread.start();
-            while(nearbyRestaurant==null){
-                double i = Math.log(309209387);
-                Log.i("bye ", "bye");
-
             }
-
-            // Put the found beaches as markers onto map and add them in hashmap.
-            for(Restaurant restaurant : nearbyRestaurant){
-                Marker curMarker = mMap.addMarker(new MarkerOptions()
-                        .position(restaurant.getLocation())
-                        .title(restaurant.getName())
-                        .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.food))));
-                allRestaurantMarkers.add(curMarker);
-            }
-
-
-            // Makes all markers clickable
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @Override
-                public boolean onMarkerClick(@NonNull Marker marker) {
-                    for(Restaurant restaurant : nearbyRestaurant){
-                        if(restaurant.getName().equals(marker.getTitle())) {
-                            createWindow(restaurant, marker);
-                            // Smoothly move the camera to the marker and display the popup window
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(restaurant.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                            if(polyline != null){
-                                polyline.remove();}
-                            try {
-                                displayWalk(restaurant, beach);
-                                //todo: store info
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                    for(Beach beach : nearbyBeaches){
-                        if(beach.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            curBeach = beach;
-                            createPopupWindow(beach, marker);
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(beach.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                        }
-                    }
-                    return false;
-                }
-            });
+        });
+        thread.start();
+        while(nearbyRestaurant==null){
+            double i = Math.log(309209387);
+            Log.i("bye ", "bye");
 
         }
+
+        // Put the found beaches as markers onto map and add them in hashmap.
+        for(Restaurant restaurant : nearbyRestaurant){
+            Marker curMarker = mMap.addMarker(new MarkerOptions()
+                    .position(restaurant.getLocation())
+                    .title(restaurant.getName())
+                    .icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.food))));
+            allRestaurantMarkers.add(curMarker);
+        }
+
+
+        // Makes all markers clickable
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                for(Restaurant restaurant : nearbyRestaurant){
+                    if(restaurant.getName().equals(marker.getTitle())) {
+                        createWindow(restaurant, marker);
+                        // Smoothly move the camera to the marker and display the popup window
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(restaurant.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                        if(polyline != null){
+                            polyline.remove();}
+                        try {
+                            displayWalk(restaurant, beach);
+                            //todo: store info
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                for(Beach beach : nearbyBeaches){
+                    if(beach.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        curBeach = beach;
+                        createPopupWindow(beach, marker);
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(beach.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                    }
+                }
+                return false;
+            }
+        });
+
+    }
 
     public void initializeRestaurantMarkers(String url) throws IOException, JSONException {
         nearbyRestaurant = new ArrayList<>();
@@ -942,47 +1079,47 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             allParkingMarkers.add(curMarker);
         }
 
-                    // Makes all markers clickable
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @SuppressLint("PotentialBehaviorOverride")
-                @Override
-                public boolean onMarkerClick(@NonNull Marker marker) {
-                    for(Parking parking : nearbyLots){
-                        if(parking.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(parking.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                            if(polyline != null){
-                                polyline.remove();}
-                            try {
-                                displayRoute(parking,beach);
-                                ETA.setVisibility(View.VISIBLE);
-                                ETA.setText("ETA: " + estimate);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+        // Makes all markers clickable
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @SuppressLint("PotentialBehaviorOverride")
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                for(Parking parking : nearbyLots){
+                    if(parking.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(parking.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                        if(polyline != null){
+                            polyline.remove();}
+                        try {
+                            displayRoute(parking,beach);
+                            ETA.setVisibility(View.VISIBLE);
+                            ETA.setText("ETA: " + estimate);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                    for(Beach beach : nearbyBeaches){
-                        if(beach.getName().equals(marker.getTitle())) {
-                            // Smoothly move the camera to the marker and display the popup window
-                            curBeach = beach;
-                            createPopupWindow(beach, marker);
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(beach.getLocation())
-                                    .zoom(15)
-                                    .build();
-                            CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
-                            mMap.animateCamera(cu);
-                        }
-                    }
-                    return false;
                 }
-            });
+                for(Beach beach : nearbyBeaches){
+                    if(beach.getName().equals(marker.getTitle())) {
+                        // Smoothly move the camera to the marker and display the popup window
+                        curBeach = beach;
+                        createPopupWindow(beach, marker);
+                        CameraPosition cameraPosition = new CameraPosition.Builder()
+                                .target(beach.getLocation())
+                                .zoom(15)
+                                .build();
+                        CameraUpdate cu = CameraUpdateFactory.newCameraPosition(cameraPosition);
+                        mMap.animateCamera(cu);
+                    }
+                }
+                return false;
+            }
+        });
 
     }
 
@@ -1202,6 +1339,23 @@ public class homeActivity extends AppCompatActivity implements NavigationView.On
             }
 
         }
+    }
+    @Override
+    public void onResume() {
+        Log.e("homeActivity: ", "resume");
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        Log.e("homeActivity: ",  "pause");
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.e("homeActivity: ", "destory");
+        super.onDestroy();
     }
 
 }

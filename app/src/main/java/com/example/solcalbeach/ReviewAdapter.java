@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -22,6 +23,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,11 +45,17 @@ public class ReviewAdapter extends ArrayAdapter<Review> {
         // Lookup view for data population
         TextView tvName = (TextView) convertView.findViewById(R.id.tvBeach);
         TextView tvHome = (TextView) convertView.findViewById(R.id.tvRating);
+        TextView tvComments = (TextView) convertView.findViewById(R.id.tvComments);
+        ImageView tvImage = (ImageView) convertView.findViewById(R.id.tvImage);
         Button deletBut = (Button) convertView.findViewById(R.id.delete_button);
         // Populate the data into the template view using the data object
         tvName.setText(review.getBeachName());
         tvHome.setText(review.getRating());
+        tvComments.setText(review.getComments());
         deletBut.setTag(review.getReviewId());
+        if(review.getImageUrl() != "") {
+            Picasso.get().load(review.getImageUrl()).into(tvImage);
+        }
         deletBut.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // your handler code here
