@@ -8,19 +8,22 @@ public class Beach{
     private double rating;
     private String placeId;
     private int user_ratings_total;
+    private String address;
     // TODO: implement rating related stuff(list+constructor...)
 
-    public Beach(String name, LatLng location, double rating, String placeId, int user_ratings_total){
+    public Beach(String name, LatLng location, double rating, String placeId, int user_ratings_total, String address){
         this.name = name;
         this.location = location;
         this.rating=rating;
         this.placeId = placeId;
         this.user_ratings_total = user_ratings_total;
+        this.address = address;
     }
 
     public LatLng getLocation() {
         return location;
     }
+
 
     public void setLocation(LatLng location) {
         this.location = location;
@@ -36,6 +39,10 @@ public class Beach{
 
     public String getName() {
         return name;
+    }
+
+    public String getAddress() {
+        return address;
     }
 
     public void setName(String name) {
