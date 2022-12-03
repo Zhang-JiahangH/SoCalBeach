@@ -1,6 +1,15 @@
 # SoCalBeach
 Team members: Jiahang Zhang, Quanyong Bi, Yuchen Wang.
 
+## Improvement from Sprint 2.4
+1. Feature 1: Comment with text.
+Previously, we only implemented the rating system where users are able to rate a beach from one star to five. We are trying to add the feature so that users can comment with text when reviewing the beach.
+2. Feature 2: Comment with image.
+Similarly to the previous one, we decided to add this extra feature which will enable the users to post pictures for the beaches when commenting.
+3. Feature 3: Details for restaurants.
+We met some trouble when trying to get the details for the nearby restaurants like menu, address and open hour.
+
+
 ## To Launch the program
 1. Clone or download the zip of the project and open it in Android studio.
 2. Build gradle.
@@ -27,4 +36,5 @@ Team members: Jiahang Zhang, Quanyong Bi, Yuchen Wang.
 
 5. Menu side bar can be opened from the top left icon.
 6. The GPS button on right side can re-located where you at.
+
 
